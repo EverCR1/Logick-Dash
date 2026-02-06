@@ -25,7 +25,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('productos.update', $producto['id'] ?? '') }}" method="POST" id="productoForm" enctype="multipart/form-data">
+            <form action="{{ route('productos.update', $producto['id'] ?? '') }}" method="POST" id="productoForm" >
                 @csrf
                 @method('PUT')
                 
@@ -277,8 +277,7 @@
                     </div>
                 </div>
                 
-                <!-- Sección de imágenes -->
-                @include('productos.partials.imagenes', ['producto' => $producto])
+                
                 
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ route('productos.index') }}" class="btn btn-secondary">Cancelar</a>
@@ -287,6 +286,9 @@
                     </button>
                 </div>
             </form>
+
+            <!-- Sección de imágenes SEPARADA del formulario principal -->
+            @include('productos.partials.imagenes', ['producto' => $producto])
         </div>
     </div>
 </div>
@@ -433,4 +435,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 @endsection

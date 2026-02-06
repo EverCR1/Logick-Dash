@@ -30,28 +30,68 @@
                         <div class="col-md-4">
                             <!-- Imagen del producto -->
                             <div class="text-center mb-3">
-                                @if(isset($producto['imagen_principal']) && $producto['imagen_principal'])
-                                    <img src="{{ $producto['imagen_principal']['url'] }}" 
-                                         alt="{{ $producto['nombre'] }}" 
-                                         class="img-fluid rounded" 
-                                         style="max-height: 250px;">
+                                @php
+                                    // Buscar la imagen principal
+                                    $imagenPrincipal = null;
+                                    $urlImagen = null;
+                                    
+                                    if(isset($producto['imagenes']) && count($producto['imagenes']) > 0) {
+                                        // Buscar imagen con es_principal = 1 (true)
+                                        foreach($producto['imagenes'] as $imagen) {
+                                            if(isset($imagen['es_principal']) && $imagen['es_principal']) {
+                                                $imagenPrincipal = $imagen;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        // Si no hay marcada como principal, usar la primera
+                                        if(!$imagenPrincipal) {
+                                            $imagenPrincipal = $producto['imagenes'][0];
+                                        }
+                                        
+                                        // Determinar qué URL usar (prioridad: url -> url_thumb -> url_medium)
+                                        if(!empty($imagenPrincipal['url'])) {
+                                            $urlImagen = $imagenPrincipal['url'];
+                                        } elseif(!empty($imagenPrincipal['url_thumb'])) {
+                                            $urlImagen = $imagenPrincipal['url_thumb'];
+                                        } elseif(!empty($imagenPrincipal['url_medium'])) {
+                                            $urlImagen = $imagenPrincipal['url_medium'];
+                                        }
+                                    }
+                                @endphp
+                                
+                                @if($urlImagen)
+                                    <img src="{{ $urlImagen }}" 
+                                        alt="{{ $producto['nombre'] }}" 
+                                        class="img-fluid rounded producto-imagen" 
+                                        style="max-height: 250px; cursor: pointer; object-fit: contain;"
+                                        onclick="abrirModalImagen('{{ $urlImagen }}', '{{ $imagenPrincipal['nombre_original'] ?? $producto['nombre'] }}')">
+                                        
+                                    @if(isset($imagenPrincipal['es_principal']) && $imagenPrincipal['es_principal'])
+                                        <div class="mt-2">
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-star me-1"></i> Imagen Principal
+                                            </span>
+                                        </div>
+                                    @endif
                                 @else
-                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
-                                         style="height: 250px;">
-                                        <i class="fas fa-box-open fa-4x text-muted"></i>
+                                    <div class="bg-light rounded d-flex flex-column align-items-center justify-content-center" 
+                                        style="height: 250px;">
+                                        <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                                        <p class="text-muted small mb-0">Sin imagen</p>
                                     </div>
                                 @endif
                             </div>
                             
+                            <!-- Estado del producto -->
                             <div class="d-grid gap-2">
                                 <span class="badge {{ $producto['estado'] == 'activo' ? 'bg-success' : 'bg-danger' }} fs-6 py-2">
-                                    {{ $producto['estado'] }}
+                                    {{ ucfirst($producto['estado']) }}
                                 </span>
                             </div>
                         </div>
                         
                         <div class="col-md-8">
-                            <!-- Información detallada -->
                             <table class="table table-sm">
                                 <tr>
                                     <th style="width: 30%;">SKU:</th>
@@ -79,7 +119,6 @@
                                 </tr>
                             </table>
                             
-                            <!-- Categorías -->
                             @if(isset($producto['categorias']) && count($producto['categorias']) > 0)
                                 <div class="mb-3">
                                     <strong>Categorías:</strong>
@@ -93,7 +132,6 @@
                         </div>
                     </div>
                     
-                    <!-- Descripción -->
                     @if($producto['descripcion'])
                         <div class="mt-4">
                             <h6>Descripción</h6>
@@ -101,7 +139,6 @@
                         </div>
                     @endif
                     
-                    <!-- Especificaciones -->
                     @if($producto['especificaciones'])
                         <div class="mt-4">
                             <h6>Especificaciones Técnicas</h6>
@@ -219,24 +256,47 @@
         </div>
     </div>
     
-    <!-- Imágenes adicionales (si existen) -->
+    <!-- Imágenes adicionales -->
     @if(isset($producto['imagenes']) && count($producto['imagenes']) > 1)
-        <div class="card">
+        <div class="card mt-4">
             <div class="card-header">
                 <h6 class="mb-0">Galería de Imágenes</h6>
+                <small class="text-muted">{{ count($producto['imagenes']) }} imágenes total</small>
             </div>
             <div class="card-body">
                 <div class="row">
                     @foreach($producto['imagenes'] as $imagen)
-                        @if(!$imagen['es_principal'])
+                        @php
+                            $esPrincipal = $imagen['es_principal'] ?? false;
+                            $urlThumb = $imagen['url_thumb'] ?? $imagen['url'] ?? '';
+                            $urlOriginal = $imagen['url'] ?? $urlThumb;
+                        @endphp
+                        
+                        @if(!empty($urlThumb))
                             <div class="col-md-3 col-6 mb-3">
-                                <div class="card">
-                                    <img src="{{ $imagen['url'] }}" 
-                                         class="card-img-top" 
-                                         alt="Imagen {{ $loop->iteration }}"
-                                         style="height: 150px; object-fit: cover;">
+                                <div class="card h-100 position-relative {{ $esPrincipal ? 'border-success border-2' : '' }}">
+                                    @if($esPrincipal)
+                                        <div class="position-absolute top-0 start-0 m-1">
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-star"></i>
+                                            </span>
+                                        </div>
+                                    @endif
+                                    
+                                    <img src="{{ $urlThumb }}" 
+                                        class="card-img-top imagen-galeria" 
+                                        alt="Imagen {{ $loop->iteration }}"
+                                        style="height: 150px; object-fit: cover; cursor: pointer;"
+                                        onclick="abrirModalImagen('{{ $urlOriginal }}', '{{ $imagen['nombre_original'] ?? 'Imagen ' . $loop->iteration }}')">
                                     <div class="card-body text-center p-2">
-                                        <small class="text-muted">{{ $imagen['nombre_original'] }}</small>
+                                        <small class="text-muted d-block text-truncate" title="{{ $imagen['nombre_original'] ?? '' }}">
+                                            {{ $imagen['nombre_original'] ?? 'Imagen ' . $loop->iteration }}
+                                        </small>
+                                        @if($imagen['es_principal'])
+                                            <small class="text-success">
+                                                <i class="fas fa-star me-1"></i>Principal
+                                            </small>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -245,6 +305,101 @@
                 </div>
             </div>
         </div>
+    @elseif(isset($producto['imagenes']) && count($producto['imagenes']) == 1)
+        <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle me-2"></i>
+            Solo hay 1 imagen para este producto
+        </div>
     @endif
 </div>
+
+<!-- Modal para ver imagen en grande -->
+<div class="modal fade" id="modalImagen" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImagenTitulo">Imagen del producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="" id="modalImagenSrc" class="img-fluid" alt="" style="max-height: 70vh; width: auto;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+// Función para abrir imagen en modal
+function abrirModalImagen(src, titulo) {
+    const modalElement = document.getElementById('modalImagen');
+    const modalSrc = document.getElementById('modalImagenSrc');
+    const modalTitle = document.getElementById('modalImagenTitulo');
+    
+    if (modalElement && modalSrc && modalTitle) {
+        modalSrc.src = src;
+        modalTitle.textContent = titulo || 'Imagen del producto';
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        console.error('Elementos del modal no encontrados');
+    }
+}
+</script>
+@endpush
+
+@push('styles')
+<style>
+.producto-imagen {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.producto-imagen:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.imagen-galeria {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.imagen-galeria:hover {
+    opacity: 0.85;
+    transform: translateY(-2px);
+}
+
+.border-success {
+    border-color: #198754 !important;
+    border-width: 2px !important;
+}
+
+/* Mejoras para el modal */
+#modalImagen .modal-body {
+    background-color: #f8f9fa;
+}
+
+#modalImagen .modal-body img {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+    border-radius: 4px;
+}
+
+/* Estilos para las tarjetas de imágenes */
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+</style>
+@endpush

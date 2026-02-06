@@ -10,30 +10,12 @@
                 @foreach($producto['imagenes'] as $imagen)
                 <div class="col-md-3 col-6 mb-3 imagen-item" data-id="{{ $imagen['id'] }}">
                     <div class="card position-relative border {{ $imagen['es_principal'] ? 'border-success' : '' }}">
-                        @php
-                            // Función temporal si ImageHelper no existe
-                            function getImageUrl($image, $size = 'medium') {
-                                if (!$image) return 'https://via.placeholder.com/300x300?text=Sin+Imagen';
-                                
-                                if (is_array($image)) {
-                                    if ($size === 'thumb' && isset($image['url_thumb'])) {
-                                        return $image['url_thumb'];
-                                    }
-                                    if ($size === 'medium' && isset($image['url_medium'])) {
-                                        return $image['url_medium'];
-                                    }
-                                    return $image['url'] ?? 'https://via.placeholder.com/300x300?text=Sin+Imagen';
-                                }
-                                
-                                return $image;
-                            }
-                        @endphp
-                        
-                        <img src="{{ getImageUrl($imagen, 'thumb') }}" 
+                        {{-- USANDO EL HELPER ImageHelper --}}
+                        <img src="{{ ImageHelper::getImageUrl($imagen, 'thumb') }}" 
                              class="card-img-top" 
                              alt="Imagen {{ $loop->iteration }}"
                              style="height: 150px; object-fit: cover; cursor: pointer;"
-                             onclick="abrirModalImagen('{{ getImageUrl($imagen, 'original') }}', '{{ $imagen['nombre_original'] }}')">
+                             onclick="abrirModalImagen('{{ ImageHelper::getImageUrl($imagen, 'original') }}', '{{ $imagen['nombre_original'] }}')">
                         
                         @if($imagen['es_principal'])
                             <div class="position-absolute top-0 start-0 m-2">
@@ -184,12 +166,12 @@
 </style>
 
 <script>
-// Variable global para el token
-let apiToken = '{{ session("api_token") }}';
+// Variables globales para API
+const API_BASE_URL = '{{ config("api.base_url", "http://localhost:8000/api") }}';
+const API_TOKEN = '{{ session("api_token") }}';
 
 document.addEventListener('DOMContentLoaded', function() {
     const productoId = document.querySelector('input[name="producto_id"]').value;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
     // Vista previa de imágenes seleccionadas
     document.getElementById('imagenes').addEventListener('change', function(e) {
@@ -210,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="row">
             `;
             
-            for (let i = 0; i < files.length && i < 4; i++) { // Mostrar máximo 4
+            for (let i = 0; i < files.length && i < 4; i++) {
                 const file = files[i];
                 const reader = new FileReader();
                 
@@ -268,25 +250,19 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalSize = 0;
         for (let file of filesInput.files) {
             totalSize += file.size;
-            if (file.size > 5 * 1024 * 1024) { // 5MB
+            if (file.size > 5 * 1024 * 1024) {
                 showAlert('danger', `La imagen "${file.name}" excede el tamaño máximo de 5MB`);
                 return;
             }
         }
         
-        if (totalSize > 50 * 1024 * 1024) { // 50MB total
+        if (totalSize > 50 * 1024 * 1024) {
             showAlert('danger', 'El tamaño total de las imágenes excede el límite de 50MB');
             return;
         }
         
-        // Crear FormData MANUALMENTE - SOLUCIÓN AL PROBLEMA
+        // Crear FormData
         const formData = new FormData();
-        
-        // Agregar el token CSRF
-        formData.append('_token', csrfToken);
-        
-        // Agregar producto_id
-        formData.append('producto_id', productoId);
         
         // Agregar el checkbox establecer_principal
         const establecerPrincipal = document.getElementById('establecer_principal').checked ? '1' : '0';
@@ -304,36 +280,35 @@ document.addEventListener('DOMContentLoaded', function() {
         progressFill.style.width = '0%';
         progressFill.textContent = '0%';
         
-        // Hacer la petición
+        // Hacer la petición DIRECTAMENTE a la API
         fetch(`/productos/${productoId}/subir-imagenes`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            body: formData
-        })
+    method: 'POST',
+    headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Accept': 'application/json'
+    },
+    body: formData
+})
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                return response.json().then(err => {
+                    throw new Error(err.message || `HTTP ${response.status}`);
+                });
             }
             return response.json();
         })
         .then(data => {
-            if (data.success || data.message) {
-                progressFill.style.width = '100%';
-                progressFill.textContent = '100%';
-                
-                setTimeout(() => {
-                    showAlert('success', '¡Imágenes subidas exitosamente!');
-                    // Recargar la página para ver las nuevas imágenes
-                    setTimeout(() => location.reload(), 1000);
-                }, 500);
-            } else {
-                throw new Error(data.message || 'Error al subir imágenes');
-            }
+            progressFill.style.width = '100%';
+            progressFill.textContent = '100%';
+            
+            setTimeout(() => {
+                showAlert('success', '¡Imágenes subidas exitosamente!');
+                // Recargar la página para ver las nuevas imágenes
+                setTimeout(() => location.reload(), 1000);
+            }, 500);
         })
         .catch(error => {
+            console.error('Error completo:', error);
             showAlert('danger', `Error: ${error.message}`);
             btn.innerHTML = '<i class="fas fa-upload me-2"></i> Subir Imágenes';
             btn.disabled = false;
@@ -341,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Establecer imagen como principal
+    // Establecer imagen como principal - ACTUALIZADO
     document.querySelectorAll('.btn-set-main').forEach(btn => {
         btn.addEventListener('click', function() {
             const imagenId = this.getAttribute('data-id');
@@ -351,30 +326,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 this.disabled = true;
                 
-                fetch(`/productos/${productoId}/imagenes/${imagenId}/establecer-principal`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
+                // Obtener token CSRF de la meta tag
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
+                if (!csrfToken) {
+                    showAlert('danger', 'Error de seguridad: Token CSRF no encontrado');
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                    return;
                 }
-            })
+                
+                fetch(`/productos/${productoId}/imagenes/${imagenId}/establecer-principal`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({}) // Puedes enviar datos vacíos o con información adicional
+                })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        return response.json().then(err => {
+                            throw new Error(err.message || `HTTP ${response.status}`);
+                        });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    if (data.success || data.message) {
+                    if (data.message) {
                         showAlert('success', 'Imagen principal actualizada correctamente');
-                        // Recargar para actualizar la interfaz
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         throw new Error(data.message || 'Error al actualizar');
                     }
                 })
                 .catch(error => {
-                    showAlert('danger', error.message);
+                    showAlert('danger', `Error: ${error.message}`);
                     this.innerHTML = originalHtml;
                     this.disabled = false;
                 });
@@ -382,32 +370,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Eliminar imagen
+    // Eliminar imagen - CORREGIDO
     document.querySelectorAll('.btn-delete-image').forEach(btn => {
         btn.addEventListener('click', function() {
             const imagenId = this.getAttribute('data-id');
             const nombre = this.getAttribute('data-nombre');
             
-            if (confirm(`¿Estás seguro de eliminar la imagen "${nombre}"?\n\nEsta acción no se puede deshacer y la imagen se eliminará permanentemente.`)) {
+            if (confirm(`¿Estás seguro de eliminar la imagen "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
                 const originalHtml = this.innerHTML;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 this.disabled = true;
                 
+                // Obtener token CSRF de la meta tag
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
+                if (!csrfToken) {
+                    showAlert('danger', 'Error de seguridad: Token CSRF no encontrado');
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                    return;
+                }
+                
                 fetch(`/productos/${productoId}/imagenes/${imagenId}`, {
                     method: 'DELETE',
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
+                        'X-CSRF-TOKEN': csrfToken, // Cambiado de Authorization a X-CSRF-TOKEN
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin' // Asegura que se envíen las cookies de sesión
                 })
                 .then(response => {
+                    // Verificar si hay error de sesión (419)
+                    if (response.status === 419) {
+                        throw new Error('La sesión ha expirado. Por favor, recarga la página.');
+                    }
+                    
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        return response.json().then(err => {
+                            throw new Error(err.message || `Error ${response.status}`);
+                        });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    if (data.success || data.message) {
+                    if (data.message) {
                         showAlert('success', 'Imagen eliminada correctamente');
                         // Remover el elemento de la vista
                         const imagenElement = document.querySelector(`.imagen-item[data-id="${imagenId}"]`);
@@ -435,9 +442,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch(error => {
-                    showAlert('danger', error.message);
+                    showAlert('danger', `Error: ${error.message}`);
                     this.innerHTML = originalHtml;
                     this.disabled = false;
+                    
+                    // Si es error de sesión, sugerir recargar
+                    if (error.message.includes('sesión ha expirado')) {
+                        setTimeout(() => {
+                            if (confirm('Tu sesión ha expirado. ¿Quieres recargar la página?')) {
+                                location.reload();
+                            }
+                        }, 1000);
+                    }
                 });
             }
         });

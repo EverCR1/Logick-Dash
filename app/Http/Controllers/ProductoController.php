@@ -313,6 +313,10 @@ class ProductoController extends Controller
         
         if ($response->successful()) {
             $producto = $response->json()['producto'] ?? null;
+            
+            // Debug temporal
+            // dd($producto); // Descomenta para ver estructura
+            
             return view('productos.show', compact('producto'));
         }
 
