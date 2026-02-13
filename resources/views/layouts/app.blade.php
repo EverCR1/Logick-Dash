@@ -342,6 +342,15 @@
                 </a>
             </li>
             @endif
+
+            @if(in_array($userRole, ['administrador', 'vendedor']))
+            <li class="menu-item">
+                <a href="{{ route('clientes.index') }}" class="menu-link {{ request()->routeIs('clientes.*') ? 'active' : '' }}">
+                    <i class="fas fa-users menu-icon"></i>
+                    <span class="menu-text">Clientes</span>
+                </a>
+            </li>
+            @endif
             
             <!-- Proveedores (admin y vendedor) -->
             @if(in_array($userRole, ['administrador', 'vendedor']))
@@ -371,17 +380,25 @@
             </li>
             @endif
             
-            <!-- Servicios (próximamente) -->
+            <!-- Servicios -->
             <li class="menu-item">
-                <a href="#" class="menu-link">
+                <a href="{{ route('servicios.index') }}" class="menu-link {{ request()->routeIs('servicios.*') ? 'active' : '' }}">
                     <i class="fas fa-concierge-bell menu-icon"></i>
                     <span class="menu-text">Servicios</span>
+                </a>
+            </li>
+
+            <!-- Créditos -->
+            <li class="menu-item">
+                <a href="{{ route('creditos.index') }}" class="menu-link {{ request()->routeIs('creditos.*') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card menu-icon"></i>
+                    <span class="menu-text">Créditos</span>
                 </a>
             </li>
             
             <!-- Ventas (próximamente) -->
             <li class="menu-item">
-                <a href="#" class="menu-link">
+                <a href="{{ route('ventas.index') }}" class="menu-link {{ request()->routeIs('ventas.*') ? 'active' : '' }}">
                     <i class="fas fa-shopping-cart menu-icon"></i>
                     <span class="menu-text">Ventas</span>
                 </a>

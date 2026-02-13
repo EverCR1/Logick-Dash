@@ -86,6 +86,7 @@
                         <div>
                             <h6 class="text-muted fw-semibold">Ventas Hoy</h6>
                             <h3 class="mb-0 fw-bold">Q {{ number_format($stats['ventas_hoy'], 2) }}</h3>
+                            <small class="text-muted">{{ $stats['total_ventas_hoy'] }} ventas</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-shopping-cart fa-2x text-info"></i>

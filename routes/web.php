@@ -7,6 +7,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ServicioController;
+use App\Http\Controllers\CreditoController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\VentaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,5 +86,67 @@ Route::middleware(['web.auth'])->group(function () {
         Route::post('/{id}/subir-imagenes', [ProductoController::class, 'subirImagenes'])->name('productos.subir-imagenes');
         Route::post('/{id}/imagenes/{imagenId}/establecer-principal', [ProductoController::class, 'establecerImagenPrincipal'])->name('productos.imagenes.establecer-principal');
         Route::delete('/{id}/imagenes/{imagenId}', [ProductoController::class, 'eliminarImagen'])->name('productos.imagenes.eliminar');
+    });
+
+    // Servicios (admin y vendedor)
+    Route::middleware(['web.auth:administrador,vendedor'])->prefix('servicios')->group(function () {
+        Route::get('/', [ServicioController::class, 'index'])->name('servicios.index');
+        Route::get('/crear', [ServicioController::class, 'create'])->name('servicios.create');
+        Route::post('/', [ServicioController::class, 'store'])->name('servicios.store');
+        Route::get('/{id}', [ServicioController::class, 'show'])->name('servicios.show');
+        Route::get('/{id}/editar', [ServicioController::class, 'edit'])->name('servicios.edit');
+        Route::put('/{id}', [ServicioController::class, 'update'])->name('servicios.update');
+        Route::delete('/{id}', [ServicioController::class, 'destroy'])->name('servicios.destroy');
+        Route::post('/{id}/cambiar-estado', [ServicioController::class, 'changeStatus'])->name('servicios.change-status');
+        Route::get('/buscar', [ServicioController::class, 'buscar'])->name('servicios.buscar');
+        
+        // Rutas para imágenes
+        Route::post('/{id}/subir-imagen', [ServicioController::class, 'subirImagen'])->name('servicios.subir-imagen');
+        Route::delete('/{id}/imagenes/{imagenId}', [ServicioController::class, 'eliminarImagen'])->name('servicios.imagenes.eliminar');
+    });
+
+    // Créditos (admin y vendedor)
+    Route::middleware(['web.auth:administrador,vendedor'])->prefix('creditos')->group(function () {
+        Route::get('/', [CreditoController::class, 'index'])->name('creditos.index');
+        Route::get('/crear', [CreditoController::class, 'create'])->name('creditos.create');
+        Route::post('/', [CreditoController::class, 'store'])->name('creditos.store');
+        Route::get('/{id}', [CreditoController::class, 'show'])->name('creditos.show');
+        Route::get('/{id}/editar', [CreditoController::class, 'edit'])->name('creditos.edit');
+        Route::put('/{id}', [CreditoController::class, 'update'])->name('creditos.update');
+        Route::delete('/{id}', [CreditoController::class, 'destroy'])->name('creditos.destroy');
+        Route::post('/{id}/cambiar-estado', [CreditoController::class, 'changeStatus'])->name('creditos.change-status');
+        Route::post('/{id}/registrar-pago', [CreditoController::class, 'registrarPago'])->name('creditos.registrar-pago');
+        Route::get('/buscar', [CreditoController::class, 'buscar'])->name('creditos.buscar');
+        Route::get('/estado/{estado}', [CreditoController::class, 'porEstado'])->name('creditos.por-estado');
+    });
+
+    // Rutas de clientes (administrador y vendedor)
+    Route::middleware(['web.auth', 'role:administrador,vendedor'])->prefix('clientes')->group(function () {
+        Route::get('/', [ClienteController::class, 'index'])->name('clientes.index');
+        Route::get('/crear', [ClienteController::class, 'create'])->name('clientes.create');
+        Route::post('/', [ClienteController::class, 'store'])->name('clientes.store');
+        Route::get('/{id}', [ClienteController::class, 'show'])->name('clientes.show');
+        Route::get('/{id}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
+        Route::put('/{id}', [ClienteController::class, 'update'])->name('clientes.update');
+        Route::delete('/{id}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+        Route::post('/{id}/cambiar-estado', [ClienteController::class, 'changeStatus'])->name('clientes.changeStatus');
+        Route::post('/{id}/cambiar-estado', [ClienteController::class, 'changeStatus'])->name('clientes.changeStatus');
+        Route::get('/estadisticas', [ClienteController::class, 'estadisticas'])->name('clientes.estadisticas');
+    });
+
+    // Ventas (admin y vendedor)
+    Route::middleware(['web.auth:administrador,vendedor'])->prefix('ventas')->group(function () {
+        Route::get('/', [VentaController::class, 'index'])->name('ventas.index');
+        Route::get('/crear', [VentaController::class, 'create'])->name('ventas.create');
+        Route::post('/', [VentaController::class, 'store'])->name('ventas.store');
+        Route::get('/{id}', [VentaController::class, 'show'])->name('ventas.show');
+        Route::post('/{id}/cancelar', [VentaController::class, 'cancelar'])->name('ventas.cancelar');
+        Route::get('/buscar', [VentaController::class, 'buscar'])->name('ventas.buscar');
+        Route::get('/reporte', [VentaController::class, 'reporte'])->name('ventas.reporte');
+        
+        // Rutas AJAX para búsqueda
+        Route::get('/buscar/productos-ajax', [VentaController::class, 'buscarProductos'])->name('ventas.buscar.productos.ajax');
+        Route::get('/buscar/servicios-ajax', [VentaController::class, 'buscarServicios'])->name('ventas.buscar.servicios.ajax');
+        Route::get('/buscar/clientes-ajax', [VentaController::class, 'buscarClientes'])->name('ventas.buscar.clientes.ajax');
     });
 });
