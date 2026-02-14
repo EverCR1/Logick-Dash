@@ -32,7 +32,7 @@
                     <input type="text" 
                            name="search" 
                            class="form-control" 
-                           placeholder="Buscar por descripción, referencia o cliente..."
+                           placeholder="Buscar por número, referencia o cliente..."
                            value="{{ $search }}">
                 </div>
                 <div class="col-md-2">
@@ -111,8 +111,8 @@
                         </div>
                         <div>
                             <small class="text-muted">Pendientes</small>
-                            <h4 class="mb-0">{{ $ventas['meta']['total'] ?? 0 }}</h4>
-                            <small>Ventas en total</small>
+                            <h4 class="mb-0">{{ $estadisticas['por_tipo']['pendiente']['cantidad'] ?? 0 }}</h4>
+                            <small>Ventas pendientes</small>
                         </div>
                     </div>
                 </div>
@@ -156,13 +156,13 @@
                         <thead>
                             <tr>
                                 <th style="width: 100px;">Fecha</th>
-                                <th>Referencia</th>
+                                <th>N° Venta</th>
                                 <th>Cliente</th>
-                                <th>Descripción</th>
-                                <th>Tipo</th>
-                                <th>Cantidad</th>
-                                <th>Total</th>
+                                <th>Items</th>
                                 <th>Método Pago</th>
+                                <th>Subtotal</th>
+                                <th>Descuento</th>
+                                <th>Total</th>
                                 <th>Estado</th>
                                 <th style="width: 120px;">Acciones</th>
                             </tr>
@@ -171,34 +171,28 @@
                             @foreach($ventasData as $venta)
                             @php
                                 $createdAt = \Carbon\Carbon::parse($venta['created_at'] ?? now());
+                                $numItems = count($venta['detalles'] ?? []);
                                 
-                                // Determinar color de estado (compatible con PHP 7.x)
+                                // Determinar color de estado
                                 $estado = $venta['estado'] ?? 'pendiente';
-                                $estadoColor = 'warning'; // default
+                                $estadoColor = 'warning';
                                 if ($estado == 'completada') {
                                     $estadoColor = 'success';
                                 } elseif ($estado == 'cancelada') {
                                     $estadoColor = 'danger';
                                 }
                                 
-                                // Determinar color de tipo
-                                $tipo = $venta['tipo'] ?? 'otro';
-                                $tipoColor = 'secondary'; // default
-                                if ($tipo == 'producto') {
-                                    $tipoColor = 'primary';
-                                } elseif ($tipo == 'servicio') {
-                                    $tipoColor = 'info';
-                                }
-                                
                                 // Determinar color de método de pago
                                 $metodo = $venta['metodo_pago'] ?? 'efectivo';
-                                $metodoColor = 'warning'; // default
+                                $metodoColor = 'warning';
                                 if ($metodo == 'efectivo') {
                                     $metodoColor = 'success';
                                 } elseif ($metodo == 'tarjeta') {
                                     $metodoColor = 'info';
                                 } elseif ($metodo == 'transferencia') {
                                     $metodoColor = 'primary';
+                                } elseif ($metodo == 'mixto') {
+                                    $metodoColor = 'secondary';
                                 }
                             @endphp
                             <tr>
@@ -207,7 +201,9 @@
                                     <small class="text-muted">{{ $createdAt->format('h:i A') }}</small>
                                 </td>
                                 <td>
-                                    <strong>{{ $venta['referencia'] ?? 'SIN-REF' }}</strong>
+                                    <strong>{{ $venta['numero_venta'] ?? 'SIN-NUM' }}</strong>
+                                    <br>
+                                    <small class="text-muted">ID: {{ $venta['id'] }}</small>
                                 </td>
                                 <td>
                                     {{ $venta['cliente']['nombre'] ?? 'Cliente no especificado' }}
@@ -217,40 +213,52 @@
                                     @endif
                                 </td>
                                 <td>
-                                    {{ $venta['descripcion'] ?? 'Sin descripción' }}
-                                    @if(!empty($venta['producto']))
-                                        <br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-box me-1"></i> {{ $venta['producto']['nombre'] ?? '' }}
-                                        </small>
-                                    @elseif(!empty($venta['servicio']))
-                                        <br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-concierge-bell me-1"></i> {{ $venta['servicio']['nombre'] ?? '' }}
-                                        </small>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ $tipoColor }}">
-                                        {{ ucfirst($venta['tipo'] ?? 'otro') }}
+                                    <span class="badge bg-info">
+                                        {{ $numItems }} {{ $numItems == 1 ? 'item' : 'items' }}
                                     </span>
-                                </td>
-                                <td>
-                                    {{ $venta['cantidad'] ?? 1 }}
-                                </td>
-                                <td>
-                                    <strong>Q{{ number_format($venta['total'] ?? 0, 2) }}</strong>
-                                    @if(!empty($venta['descuento']) && $venta['descuento'] > 0)
-                                        <br>
-                                        <small class="text-danger">
-                                            <i class="fas fa-tag me-1"></i> Dcto: Q{{ number_format($venta['descuento'], 2) }}
-                                        </small>
+                                    @if($numItems > 0)
+                                        <button type="button" 
+                                                class="btn btn-sm btn-link p-0 ms-1" 
+                                                data-bs-toggle="popover" 
+                                                data-bs-html="true"
+                                                data-bs-trigger="hover"
+                                                title="Items de la venta"
+                                                data-bs-content="
+                                                    <ul class='list-unstyled mb-0'>
+                                                        @foreach(array_slice($venta['detalles'] ?? [], 0, 3) as $detalle)
+                                                            <li><small>• {{ $detalle['cantidad'] }}x {{ Str::limit($detalle['descripcion'], 25) }}</small></li>
+                                                        @endforeach
+                                                        @if($numItems > 3)
+                                                            <li><small class='text-muted'>... y {{ $numItems - 3 }} más</small></li>
+                                                        @endif
+                                                    </ul>
+                                                ">
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                        </button>
                                     @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $metodoColor }}">
                                         {{ ucfirst($venta['metodo_pago'] ?? 'efectivo') }}
                                     </span>
+                                </td>
+                                <td>
+                                    Q{{ number_format($venta['subtotal'] ?? 0, 2) }}
+                                </td>
+                                <td>
+                                    @if(!empty($venta['descuento_total']) && $venta['descuento_total'] > 0)
+                                        <span class="text-danger">
+                                            <i class="fas fa-tag me-1"></i>
+                                            Q{{ number_format($venta['descuento_total'], 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <strong class="text-primary">
+                                        Q{{ number_format($venta['total'] ?? 0, 2) }}
+                                    </strong>
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $estadoColor }}">
@@ -273,8 +281,7 @@
                                                 @csrf
                                                 <button type="submit" 
                                                         class="btn btn-sm btn-danger" 
-                                                        title="Cancelar venta"
-                                                        {{ ($venta['estado'] ?? 'completada') === 'cancelada' ? 'disabled' : '' }}>
+                                                        title="Cancelar venta">
                                                     <i class="fas fa-ban"></i>
                                                 </button>
                                             </form>
@@ -348,6 +355,25 @@
     justify-content: center;
 }
 
+/* Tooltip personalizado */
+.popover {
+    max-width: 300px;
+}
+
+.popover ul {
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+.popover li {
+    padding: 2px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.popover li:last-child {
+    border-bottom: none;
+}
+
 /* Estilos responsivos */
 @media (max-width: 768px) {
     .table-responsive {
@@ -369,6 +395,23 @@
         width: 100%;
         justify-content: space-between;
     }
+    
+    .badge {
+        font-size: 0.75em;
+        padding: 0.3em 0.5em;
+    }
 }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+// Inicializar popovers de Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl)
+    });
+});
+</script>
 @endpush

@@ -144,6 +144,10 @@ Route::middleware(['web.auth'])->group(function () {
         Route::get('/buscar', [VentaController::class, 'buscar'])->name('ventas.buscar');
         Route::get('/reporte', [VentaController::class, 'reporte'])->name('ventas.reporte');
         
+        // Nuevas rutas para manejar items de venta
+        Route::post('/{id}/items', [VentaController::class, 'agregarItem'])->name('ventas.items.agregar');
+        Route::delete('/{id}/items/{detalleId}', [VentaController::class, 'eliminarItem'])->name('ventas.items.eliminar');
+        
         // Rutas AJAX para búsqueda
         Route::get('/buscar/productos-ajax', [VentaController::class, 'buscarProductos'])->name('ventas.buscar.productos.ajax');
         Route::get('/buscar/servicios-ajax', [VentaController::class, 'buscarServicios'])->name('ventas.buscar.servicios.ajax');

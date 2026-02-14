@@ -103,102 +103,67 @@ class VentaController extends Controller
     }
 
     /**
-     * Almacenar nueva venta
+     * Almacenar nueva venta con múltiples productos/servicios
      */
     public function store(Request $request)
     {
         try {
-            // PASO 1: Validación básica inicial
+            // PASO 1: Validación básica
             $request->validate([
-                'tipo' => 'required|in:producto,servicio,otro',
-                'cantidad' => 'required|integer|min:1',
+                'items' => 'required|array|min:1',
+                'items.*.tipo' => 'required|in:producto,servicio,otro',
+                'items.*.cantidad' => 'required|integer|min:1',
+                'items.*.descripcion' => 'required|string|max:500',
+                'items.*.precio_unitario' => 'required|numeric|min:0',
+                'items.*.descuento' => 'nullable|numeric|min:0',
+                'items.*.producto_id' => 'nullable|required_if:items.*.tipo,producto|integer',
+                'items.*.servicio_id' => 'nullable|required_if:items.*.tipo,servicio|integer',
+                'items.*.referencia' => 'nullable|string|max:100',
+                'cliente_id' => 'nullable|integer',
                 'metodo_pago' => 'required|in:efectivo,tarjeta,transferencia,mixto',
-                'producto_id' => 'nullable|required_if:tipo,producto',
-                'servicio_id' => 'nullable|required_if:tipo,servicio',
-                'cliente_id' => 'nullable',
-                'descuento' => 'nullable|numeric|min:0',
                 'observaciones' => 'nullable|string',
-                'descripcion' => 'nullable|string', // Añadir esta validación
+            ], [
+                'items.required' => 'Debe agregar al menos un producto o servicio',
+                'items.min' => 'Debe agregar al menos un producto o servicio',
+                'items.*.tipo.required' => 'El tipo de cada item es requerido',
+                'items.*.cantidad.required' => 'La cantidad de cada item es requerida',
+                'items.*.cantidad.min' => 'La cantidad debe ser al menos 1',
+                'items.*.descripcion.required' => 'La descripción de cada item es requerida',
+                'items.*.precio_unitario.required' => 'El precio de cada item es requerido',
+                'items.*.precio_unitario.min' => 'El precio debe ser mayor a 0',
             ]);
 
-            // PASO 2: Preparar datos iniciales
+            // PASO 2: Preparar datos para enviar a la API
             $data = [
-                'tipo' => $request->tipo,
-                'cantidad' => (int) $request->cantidad,
-                'metodo_pago' => $request->metodo_pago,
-                'descuento' => $request->descuento ? (float) $request->descuento : 0,
-                'observaciones' => $request->observaciones ?? '',
+                'items' => [],
                 'cliente_id' => !empty($request->cliente_id) ? (int) $request->cliente_id : null,
-                'descripcion' => $request->descripcion ?? '', // ¡IMPORTANTE! Capturar la descripción del request
+                'metodo_pago' => $request->metodo_pago,
+                'observaciones' => $request->observaciones ?? '',
             ];
 
-            // PASO 3: Obtener datos según el tipo desde la API
-            if ($request->tipo === 'producto' && !empty($request->producto_id)) {
-                $responseProducto = $this->apiService->get("productos/{$request->producto_id}");
-                
-                if ($responseProducto->successful()) {
-                    $producto = $responseProducto->json()['producto'] ?? $responseProducto->json();
-                    
-                    $data['producto_id'] = (int) $request->producto_id;
-                    $data['precio_unitario'] = (float) ($producto['precio_oferta'] ?? $producto['precio_venta'] ?? 0);
-                    $data['servicio_id'] = null;
-                    
-                    // Si por alguna razón la descripción no vino del frontend, usar la de la API
-                    if (empty($data['descripcion'])) {
-                        $data['descripcion'] = $producto['nombre'] ?? 'Producto sin nombre';
-                    }
-                } else {
-                    return back()->withErrors(['producto_id' => 'No se pudo obtener el producto de la API'])->withInput();
+            // PASO 3: Procesar cada item
+            foreach ($request->items as $index => $item) {
+                $itemData = [
+                    'tipo' => $item['tipo'],
+                    'cantidad' => (int) $item['cantidad'],
+                    'descripcion' => $item['descripcion'],
+                    'precio_unitario' => (float) $item['precio_unitario'],
+                    'descuento' => isset($item['descuento']) ? (float) $item['descuento'] : 0,
+                ];
+
+                // Agregar IDs según el tipo
+                if ($item['tipo'] === 'producto' && !empty($item['producto_id'])) {
+                    $itemData['producto_id'] = (int) $item['producto_id'];
+                } elseif ($item['tipo'] === 'servicio' && !empty($item['servicio_id'])) {
+                    $itemData['servicio_id'] = (int) $item['servicio_id'];
+                } elseif ($item['tipo'] === 'otro' && !empty($item['referencia'])) {
+                    $itemData['referencia'] = $item['referencia'];
                 }
-            } 
-            elseif ($request->tipo === 'servicio' && !empty($request->servicio_id)) {
-                $responseServicio = $this->apiService->get("servicios/{$request->servicio_id}");
-                
-                if ($responseServicio->successful()) {
-                    $servicio = $responseServicio->json()['servicio'] ?? $responseServicio->json();
-                    
-                    $data['servicio_id'] = (int) $request->servicio_id;
-                    $data['precio_unitario'] = (float) ($servicio['precio_oferta'] ?? $servicio['precio_venta'] ?? 0);
-                    $data['producto_id'] = null;
-                    
-                    // Si por alguna razón la descripción no vino del frontend, usar la de la API
-                    if (empty($data['descripcion'])) {
-                        $data['descripcion'] = $servicio['nombre'] ?? 'Servicio sin nombre';
-                    }
-                } else {
-                    return back()->withErrors(['servicio_id' => 'No se pudo obtener el servicio de la API'])->withInput();
-                }
-            } 
-            else {
-                // Caso "otro" - validar que tenga descripción
-                $request->validate([
-                    'descripcion' => 'required|string|max:500',
-                    'precio_unitario' => 'required|numeric|min:0',
-                ]);
-                
-                $data['precio_unitario'] = (float) $request->precio_unitario;
-                $data['producto_id'] = null;
-                $data['servicio_id'] = null;
-                // La descripción ya se capturó arriba
+
+                $data['items'][] = $itemData;
             }
 
-            // PASO 4: Validar que tenemos todos los datos necesarios
-            if (!isset($data['precio_unitario']) || $data['precio_unitario'] <= 0) {
-                return back()->withErrors(['precio_unitario' => 'No se pudo determinar el precio'])->withInput();
-            }
-
-            if (!isset($data['descripcion']) || empty($data['descripcion'])) {
-                return back()->withErrors(['descripcion' => 'No se pudo determinar la descripción'])->withInput();
-            }
-
-            // PASO 5: Calcular total
-            $data['total'] = ($data['precio_unitario'] * $data['cantidad']) - $data['descuento'];
-            
-            // PASO 6: Agregar campos que faltan
-            $data['usuario_id'] = auth()->id() ?? 1;
-            $data['es_credito'] = $request->has('es_credito') ? (bool) $request->es_credito : false;
-
-            // PASO 7: Enviar a la API
+            // PASO 4: Enviar a la API
             $response = $this->apiService->post('ventas', $data);
 
             if ($response->successful()) {
@@ -206,7 +171,24 @@ class VentaController extends Controller
                     ->with('success', 'Venta registrada exitosamente');
             }
 
-            $errors = $response->json()['errors'] ?? ['Error al crear venta: ' . $response->body()];
+            // Manejar errores de la API
+            $errorResponse = $response->json();
+            $errors = [];
+
+            if (isset($errorResponse['errors'])) {
+                foreach ($errorResponse['errors'] as $field => $messages) {
+                    if (is_array($messages)) {
+                        $errors[$field] = implode(', ', $messages);
+                    } else {
+                        $errors[] = $messages;
+                    }
+                }
+            } elseif (isset($errorResponse['message'])) {
+                $errors[] = $errorResponse['message'];
+            } else {
+                $errors[] = 'Error al crear venta';
+            }
+
             return back()->withErrors($errors)->withInput();
             
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -218,7 +200,7 @@ class VentaController extends Controller
     }
 
     /**
-     * Mostrar detalles de una venta
+     * Mostrar detalles de una venta (actualizado para mostrar múltiples items)
      */
     public function show($id)
     {
@@ -445,6 +427,59 @@ class VentaController extends Controller
                 'estado' => 'todos',
                 'tipo' => 'todos'
             ]);
+        }
+    }
+
+    /**
+     * Agregar item a venta existente (nuevo método)
+     */
+    public function agregarItem(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tipo' => 'required|in:producto,servicio,otro',
+                'cantidad' => 'required|integer|min:1',
+                'descripcion' => 'required|string|max:500',
+                'precio_unitario' => 'required|numeric|min:0',
+                'descuento' => 'nullable|numeric|min:0',
+                'producto_id' => 'nullable|required_if:tipo,producto|integer',
+                'servicio_id' => 'nullable|required_if:tipo,servicio|integer',
+                'referencia' => 'nullable|string|max:100',
+            ]);
+
+            $response = $this->apiService->post("ventas/{$id}/detalles", $request->all());
+
+            if ($response->successful()) {
+                return redirect()->route('ventas.show', $id)
+                    ->with('success', 'Item agregado exitosamente');
+            }
+
+            return back()->withErrors(['error' => 'Error al agregar item'])->withInput();
+            
+        } catch (\Exception $e) {
+            Log::error('Error agregando item: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al agregar item: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    /**
+     * Eliminar item de venta (nuevo método)
+     */
+    public function eliminarItem($id, $detalleId)
+    {
+        try {
+            $response = $this->apiService->delete("ventas/{$id}/detalles/{$detalleId}");
+
+            if ($response->successful()) {
+                return redirect()->route('ventas.show', $id)
+                    ->with('success', 'Item eliminado exitosamente');
+            }
+
+            return back()->withErrors(['error' => 'Error al eliminar item']);
+            
+        } catch (\Exception $e) {
+            Log::error('Error eliminando item: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al eliminar item: ' . $e->getMessage()]);
         }
     }
 }
