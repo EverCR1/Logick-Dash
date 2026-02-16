@@ -16,6 +16,7 @@ class ProductoController extends Controller
 
     public function index()
     {
+        // Obtener productos
         $response = $this->apiService->get('productos');
         
         if ($response->successful()) {
@@ -28,7 +29,54 @@ class ProductoController extends Controller
             ];
         }
 
-        return view('productos.index', compact('productos'));
+        // Obtener categorías para filtros
+        $categoriasResponse = $this->apiService->get('categorias-flat');
+        $categoriasFiltro = $categoriasResponse->successful() ? $categoriasResponse->json()['categorias'] ?? [] : [];
+        
+        // Transformar el array de categorías para los filtros
+        $categoriasParaFiltros = [];
+        if (!empty($categoriasFiltro)) {
+            foreach ($categoriasFiltro as $id => $nombre) {
+                // Limpiar el nombre eliminando los guiones para mostrar
+                $nombreLimpio = preg_replace('/^[\s\-]+/', '', $nombre);
+                
+                $categoriasParaFiltros[] = [
+                    'id' => $id,
+                    'nombre' => $nombreLimpio,
+                    'nombre_original' => $nombre // Mantener el original si necesitas mostrar la jerarquía
+                ];
+            }
+            
+            // Ordenar alfabéticamente por nombre limpio
+            usort($categoriasParaFiltros, function($a, $b) {
+                return strcmp($a['nombre'], $b['nombre']);
+            });
+        }
+        
+        // Obtener proveedores para filtros (ya vienen en formato correcto)
+        $proveedoresResponse = $this->apiService->get('proveedores');
+        $proveedoresFiltro = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
+        
+        // Transformar proveedores al formato necesario para los filtros
+        $proveedoresParaFiltros = [];
+        if (!empty($proveedoresFiltro)) {
+            foreach ($proveedoresFiltro as $proveedor) {
+                $proveedoresParaFiltros[] = [
+                    'id' => $proveedor['id'],
+                    'nombre' => $proveedor['nombre'],
+                    'estado' => $proveedor['estado'] ?? 'activo',
+                    'email' => $proveedor['email'] ?? '',
+                    'telefono' => $proveedor['telefono'] ?? ''
+                ];
+            }
+            
+            // Ordenar proveedores alfabéticamente
+            usort($proveedoresParaFiltros, function($a, $b) {
+                return strcmp($a['nombre'], $b['nombre']);
+            });
+        }
+
+        return view('productos.index', compact('productos', 'categoriasParaFiltros', 'proveedoresParaFiltros'));
     }
 
     public function create()

@@ -11,11 +11,10 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Gestión de Ventas</h5>
+            <h5 class="card-title mb-0">
+                <i class="fas fa-shopping-cart me-2"></i>Gestión de Ventas
+            </h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('ventas.buscar') }}" class="btn btn-info">
-                    <i class="fas fa-search me-2"></i> Búsqueda Avanzada
-                </a>
                 <a href="{{ route('ventas.reporte') }}" class="btn btn-success">
                     <i class="fas fa-chart-bar me-2"></i> Reportes
                 </a>
@@ -23,45 +22,6 @@
                     <i class="fas fa-plus me-2"></i> Nueva Venta
                 </a>
             </div>
-        </div>
-        
-        <!-- Filtros -->
-        <div class="card-body border-bottom">
-            <form method="GET" action="{{ route('ventas.index') }}" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" 
-                           name="search" 
-                           class="form-control" 
-                           placeholder="Buscar por número, referencia o cliente..."
-                           value="{{ $search }}">
-                </div>
-                <div class="col-md-2">
-                    <select name="estado" class="form-control">
-                        <option value="todos" {{ $estado == 'todos' ? 'selected' : '' }}>Todos los estados</option>
-                        <option value="completada" {{ $estado == 'completada' ? 'selected' : '' }}>Completadas</option>
-                        <option value="pendiente" {{ $estado == 'pendiente' ? 'selected' : '' }}>Pendientes</option>
-                        <option value="cancelada" {{ $estado == 'cancelada' ? 'selected' : '' }}>Canceladas</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="tipo" class="form-control">
-                        <option value="todos" {{ $tipo == 'todos' ? 'selected' : '' }}>Todos los tipos</option>
-                        <option value="producto" {{ $tipo == 'producto' ? 'selected' : '' }}>Productos</option>
-                        <option value="servicio" {{ $tipo == 'servicio' ? 'selected' : '' }}>Servicios</option>
-                        <option value="otro" {{ $tipo == 'otro' ? 'selected' : '' }}>Otros</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i> Filtrar
-                    </button>
-                </div>
-                <div class="col-md-2">
-                    <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-redo me-2"></i> Limpiar
-                    </a>
-                </div>
-            </form>
         </div>
         
         <!-- Estadísticas -->
@@ -123,6 +83,7 @@
         <div class="card-body">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -130,10 +91,123 @@
 
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
                     {{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
+            <!-- Filtros y búsqueda en tiempo real -->
+            <div class="row mb-4">
+                <div class="col-md-7">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="completada">
+                            Completadas
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm filter-btn" data-filter="pendiente">
+                            Pendientes
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="cancelada">
+                            Canceladas
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group ms-2" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm filter-pago-btn" data-pago="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-pago-btn" data-pago="efectivo">
+                            Efectivo
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm filter-pago-btn" data-pago="tarjeta">
+                            Tarjeta
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-pago-btn" data-pago="transferencia">
+                            Transferencia
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm filter-pago-btn" data-pago="mixto">
+                            Mixto
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Buscar por número, referencia, cliente, NIT...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros adicionales -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-calendar me-1"></i> Rango de fechas
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width: 300px;">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha desde</label>
+                                    <input type="date" class="form-control form-control-sm" id="fechaDesde">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha hasta</label>
+                                    <input type="date" class="form-control form-control-sm" id="fechaHasta">
+                                </div>
+                                <button class="btn btn-sm btn-primary w-100" id="aplicarRangoFechas">Aplicar</button>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-dollar-sign me-1"></i> Rango de montos
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width: 280px;">
+                                <div class="mb-3">
+                                    <label class="form-label">Monto mínimo</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="montoMin" min="0" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Monto máximo</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="montoMax" min="0" step="0.01" placeholder="9999.99">
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary w-100" id="aplicarRangoMontos">Aplicar</button>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-sort me-1"></i> Ordenar por
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="fecha_desc">Más recientes</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="fecha_asc">Más antiguos</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_desc">Mayor monto</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_asc">Menor monto</a></li>
+                            </ul>
+                        </div>
+                        
+                        <button class="btn btn-sm btn-info" id="btnLimpiarFiltros" title="Limpiar todos los filtros">
+                            <i class="fas fa-undo me-1"></i> Limpiar filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             @php
                 $ventasData = $ventas['data'] ?? [];
@@ -152,8 +226,8 @@
                 </div>
             @else
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-striped" id="ventasTable">
+                        <thead class="bg-primary text-white">
                             <tr>
                                 <th style="width: 100px;">Fecha</th>
                                 <th>N° Venta</th>
@@ -170,7 +244,7 @@
                         <tbody>
                             @foreach($ventasData as $venta)
                             @php
-                                $createdAt = \Carbon\Carbon::parse($venta['created_at'] ?? now());
+                                $createdAt = \Carbon\Carbon::parse($venta['created_at'] ?? now())->timezone('America/Guatemala');
                                 $numItems = count($venta['detalles'] ?? []);
                                 
                                 // Determinar color de estado
@@ -194,8 +268,28 @@
                                 } elseif ($metodo == 'mixto') {
                                     $metodoColor = 'secondary';
                                 }
+                                
+                                // Preparar datos para búsqueda
+                                $clienteNombre = $venta['cliente']['nombre'] ?? '';
+                                $clienteNit = $venta['cliente']['nit'] ?? '';
+                                $itemsTexto = '';
+                                if (!empty($venta['detalles'])) {
+                                    $itemsTexto = implode(' ', array_column($venta['detalles'], 'descripcion'));
+                                }
+                                $searchText = strtolower(
+                                    ($venta['numero_venta'] ?? '') . ' ' . 
+                                    $clienteNombre . ' ' . 
+                                    $clienteNit . ' ' . 
+                                    $itemsTexto . ' ' . 
+                                    ($venta['id'] ?? '')
+                                );
                             @endphp
-                            <tr>
+                            <tr data-estado="{{ $estado }}"
+                                data-metodo-pago="{{ $metodo }}"
+                                data-fecha="{{ $venta['created_at'] ?? '' }}"
+                                data-total="{{ $venta['total'] ?? 0 }}"
+                                data-cliente="{{ strtolower($clienteNombre) }}"
+                                data-search="{{ $searchText }}">
                                 <td>
                                     <small class="d-block">{{ $createdAt->format('d/m/Y') }}</small>
                                     <small class="text-muted">{{ $createdAt->format('h:i A') }}</small>
@@ -206,10 +300,10 @@
                                     <small class="text-muted">ID: {{ $venta['id'] }}</small>
                                 </td>
                                 <td>
-                                    {{ $venta['cliente']['nombre'] ?? 'Cliente no especificado' }}
-                                    @if(!empty($venta['cliente']['nit']))
+                                    {{ $clienteNombre ?: 'Cliente no especificado' }}
+                                    @if(!empty($clienteNit))
                                         <br>
-                                        <small class="text-muted">NIT: {{ $venta['cliente']['nit'] }}</small>
+                                        <small class="text-muted">NIT: {{ $clienteNit }}</small>
                                     @endif
                                 </td>
                                 <td>
@@ -239,7 +333,8 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $metodoColor }}">
-                                        {{ ucfirst($venta['metodo_pago'] ?? 'efectivo') }}
+                                        <i class="fas fa-{{ $metodo == 'efectivo' ? 'money-bill' : ($metodo == 'tarjeta' ? 'credit-card' : ($metodo == 'transferencia' ? 'exchange-alt' : 'coins')) }} me-1"></i>
+                                        {{ ucfirst($metodo) }}
                                     </span>
                                 </td>
                                 <td>
@@ -262,7 +357,8 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $estadoColor }}">
-                                        {{ ucfirst($venta['estado'] ?? 'pendiente') }}
+                                        <i class="fas fa-{{ $estado == 'completada' ? 'check-circle' : ($estado == 'pendiente' ? 'clock' : 'times-circle') }} me-1"></i>
+                                        {{ ucfirst($estado) }}
                                     </span>
                                 </td>
                                 <td>
@@ -328,6 +424,270 @@
 </div>
 @endsection
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentEstadoFilter = 'todos';
+    let currentMetodoPagoFilter = 'todos';
+    let currentSort = 'fecha_desc';
+    let currentSearch = '';
+    let fechaDesde = null;
+    let fechaHasta = null;
+    let montoMin = null;
+    let montoMax = null;
+    
+    // Función para parsear fecha
+    function parseFecha(fechaStr) {
+        if (!fechaStr) return null;
+        return new Date(fechaStr);
+    }
+    
+    // Función para aplicar todos los filtros
+    function aplicarFiltros() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+        currentSearch = searchText;
+        
+        const tbody = document.querySelector('#ventasTable tbody');
+        let rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Excluir fila de no resultados si existe
+        rows = rows.filter(row => row.id !== 'no-results-row');
+        
+        let visibleRows = [];
+        
+        rows.forEach(row => {
+            const estado = row.dataset.estado;
+            const metodoPago = row.dataset.metodoPago;
+            const fecha = parseFecha(row.dataset.fecha);
+            const total = parseFloat(row.dataset.total) || 0;
+            const searchData = row.dataset.search || '';
+            
+            // Filtro de estado
+            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
+            
+            // Filtro de método de pago
+            const metodoMatch = currentMetodoPagoFilter === 'todos' || metodoPago === currentMetodoPagoFilter;
+            
+            // Filtro de rango de fechas
+            let fechaMatch = true;
+            if (fechaDesde && fecha) {
+                fechaMatch = fecha >= fechaDesde;
+            }
+            if (fechaMatch && fechaHasta && fecha) {
+                const fechaHastaFin = new Date(fechaHasta);
+                fechaHastaFin.setHours(23, 59, 59, 999);
+                fechaMatch = fecha <= fechaHastaFin;
+            }
+            
+            // Filtro de rango de montos
+            let montoMatch = true;
+            if (montoMin !== null) {
+                montoMatch = total >= montoMin;
+            }
+            if (montoMatch && montoMax !== null) {
+                montoMatch = total <= montoMax;
+            }
+            
+            // Filtro de búsqueda
+            const searchMatch = searchText === '' || searchData.includes(searchText);
+            
+            // Mostrar u ocultar fila
+            if (estadoMatch && metodoMatch && fechaMatch && montoMatch && searchMatch) {
+                row.style.display = '';
+                visibleRows.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Aplicar ordenamiento
+        visibleRows = ordenarFilas(visibleRows, currentSort);
+        
+        // Reordenar la tabla
+        const allRows = rows.filter(row => visibleRows.includes(row));
+        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
+        
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+        
+        visibleRows.forEach(row => tbody.appendChild(row));
+        hiddenRows.forEach(row => tbody.appendChild(row));
+        
+        // Mostrar mensaje si no hay resultados
+        mostrarMensajeNoResultados(visibleRows.length, rows.length);
+    }
+    
+    // Función para ordenar filas
+    function ordenarFilas(rows, sortType) {
+        return rows.sort((a, b) => {
+            switch(sortType) {
+                case 'fecha_desc':
+                    const fechaA = parseFecha(a.dataset.fecha) || new Date(0);
+                    const fechaB = parseFecha(b.dataset.fecha) || new Date(0);
+                    return fechaB - fechaA;
+                    
+                case 'fecha_asc':
+                    const fechaC = parseFecha(a.dataset.fecha) || new Date(0);
+                    const fechaD = parseFecha(b.dataset.fecha) || new Date(0);
+                    return fechaC - fechaD;
+                    
+                case 'total_desc':
+                    return (parseFloat(b.dataset.total) || 0) - (parseFloat(a.dataset.total) || 0);
+                    
+                case 'total_asc':
+                    return (parseFloat(a.dataset.total) || 0) - (parseFloat(b.dataset.total) || 0);
+                    
+                default:
+                    return 0;
+            }
+        });
+    }
+    
+    // Función para mostrar mensaje cuando no hay resultados
+    function mostrarMensajeNoResultados(visibleCount, totalRows) {
+        const table = document.getElementById('ventasTable');
+        const tbody = table.querySelector('tbody');
+        let noResultsRow = document.getElementById('no-results-row');
+        
+        if (visibleCount === 0 && totalRows > 0) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="10" class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No se encontraron ventas</h5>
+                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
+                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                            <i class="fas fa-undo me-2"></i>Limpiar filtros
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(noResultsRow);
+            }
+        } else {
+            if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    }
+    
+    // Función para limpiar filtros
+    window.limpiarFiltros = function() {
+        currentEstadoFilter = 'todos';
+        currentMetodoPagoFilter = 'todos';
+        currentSort = 'fecha_desc';
+        fechaDesde = null;
+        fechaHasta = null;
+        montoMin = null;
+        montoMax = null;
+        
+        // Actualizar botones de estado
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Actualizar botones de método de pago
+        document.querySelectorAll('.filter-pago-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.pago === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Limpiar inputs
+        document.getElementById('fechaDesde').value = '';
+        document.getElementById('fechaHasta').value = '';
+        document.getElementById('montoMin').value = '';
+        document.getElementById('montoMax').value = '';
+        document.getElementById('searchInput').value = '';
+        
+        aplicarFiltros();
+    };
+    
+    // Eventos para filtros de estado
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentEstadoFilter = this.dataset.filter;
+            aplicarFiltros();
+        });
+    });
+    
+    // Eventos para filtros de método de pago
+    document.querySelectorAll('.filter-pago-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-pago-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentMetodoPagoFilter = this.dataset.pago;
+            aplicarFiltros();
+        });
+    });
+    
+    // Evento para aplicar rango de fechas
+    document.getElementById('aplicarRangoFechas').addEventListener('click', function() {
+        fechaDesde = document.getElementById('fechaDesde').value ? new Date(document.getElementById('fechaDesde').value) : null;
+        fechaHasta = document.getElementById('fechaHasta').value ? new Date(document.getElementById('fechaHasta').value) : null;
+        aplicarFiltros();
+    });
+    
+    // Evento para aplicar rango de montos
+    document.getElementById('aplicarRangoMontos').addEventListener('click', function() {
+        montoMin = document.getElementById('montoMin').value ? parseFloat(document.getElementById('montoMin').value) : null;
+        montoMax = document.getElementById('montoMax').value ? parseFloat(document.getElementById('montoMax').value) : null;
+        aplicarFiltros();
+    });
+    
+    // Eventos para ordenamiento
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentSort = this.dataset.sort;
+            aplicarFiltros();
+        });
+    });
+    
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(aplicarFiltros, 300);
+    });
+    
+    // Botón limpiar búsqueda
+    document.getElementById('clearSearch').addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        aplicarFiltros();
+        document.getElementById('searchInput').focus();
+    });
+    
+    // Botón limpiar todos los filtros
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
+    
+    // Inicializar botones activos
+    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
+    document.querySelector('.filter-pago-btn[data-pago="todos"]').classList.add('active');
+    
+    // Inicializar popovers de Bootstrap
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl)
+    });
+    
+    // Agregar tooltips a los botones
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+@endpush
+
 @push('styles')
 <style>
 .table-hover tbody tr:hover {
@@ -353,6 +713,65 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Estilos para botones de filtro activos */
+.filter-btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.filter-btn[data-filter="completada"].active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.filter-btn[data-filter="pendiente"].active {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.filter-btn[data-filter="cancelada"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.filter-pago-btn.active {
+    background-color: #0dcaf0;
+    color: #000;
+    border-color: #0dcaf0;
+}
+
+.filter-pago-btn[data-pago="efectivo"].active {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.filter-pago-btn[data-pago="tarjeta"].active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.filter-pago-btn[data-pago="transferencia"].active {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.filter-pago-btn[data-pago="mixto"].active {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+/* Dropdowns de filtros */
+.dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 /* Tooltip personalizado */
@@ -400,18 +819,20 @@
         font-size: 0.75em;
         padding: 0.3em 0.5em;
     }
+    
+    .d-flex.flex-wrap {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .dropdown {
+        width: 100%;
+    }
+    
+    .dropdown .btn {
+        width: 100%;
+        text-align: left;
+    }
 }
 </style>
-@endpush
-
-@push('scripts')
-<script>
-// Inicializar popovers de Bootstrap
-document.addEventListener('DOMContentLoaded', function() {
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl)
-    });
-});
-</script>
 @endpush

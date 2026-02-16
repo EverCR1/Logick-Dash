@@ -86,21 +86,10 @@
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Gestión de Créditos</h5>
+            <h5 class="card-title mb-0">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Gestión de Créditos
+            </h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('creditos.buscar') }}" class="btn btn-info">
-                    <i class="fas fa-search me-2"></i> Buscar
-                </a>
-                <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-filter me-2"></i> Por Estado
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('creditos.por-estado', 'activo') }}">Activos</a></li>
-                        <li><a class="dropdown-item" href="{{ route('creditos.por-estado', 'abonado') }}">Abonados</a></li>
-                        <li><a class="dropdown-item" href="{{ route('creditos.por-estado', 'pagado') }}">Pagados</a></li>
-                    </ul>
-                </div>
                 <a href="{{ route('creditos.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i> Nuevo Crédito
                 </a>
@@ -109,10 +98,58 @@
         <div class="card-body">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            <!-- Filtros y búsqueda en tiempo real -->
+            <div class="row mb-4">
+                <div class="col-md-7">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="activo">
+                            Activos
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm filter-btn" data-filter="abonado">
+                            Abonados
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="pagado">
+                            Pagados
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group ms-2" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="fecha_desc">
+                            <i class="fas fa-sort-amount-down me-1"></i>Más recientes
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="monto_desc">
+                            <i class="fas fa-sort-amount-down-alt me-1"></i>Mayor monto
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Buscar por cliente, producto, servicio...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             @php
                 // Extraer datos de manera segura
@@ -146,8 +183,8 @@
                 </div>
             @else
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-striped" id="creditosTable">
+                        <thead class="bg-primary text-white">
                             <tr>
                                 <th>Cliente</th>
                                 <th>Producto/Servicio</th>
@@ -177,19 +214,38 @@
                                     'abonado' => 'Abonado',
                                     'pagado' => 'Pagado'
                                 ];
+
+                                // Preparar datos para búsqueda
+                                $clienteNombre = $credito['nombre_cliente'] ?? '';
+                                $producto = $credito['producto_o_servicio_dado'] ?? '';
+                                $monto = number_format($credito['capital'] ?? 0, 2);
+                                $restante = number_format($credito['capital_restante'] ?? 0, 2);
+                                $fechaCredito = isset($credito['fecha_credito']) ? \Carbon\Carbon::parse($credito['fecha_credito'])->format('d/m/Y') : '';
+                                $searchText = strtolower(
+                                    $clienteNombre . ' ' . 
+                                    $producto . ' ' . 
+                                    $monto . ' ' . 
+                                    $restante . ' ' . 
+                                    $fechaCredito
+                                );
                             @endphp
-                            <tr>
+                            <tr data-estado="{{ $credito['estado'] ?? 'activo' }}"
+                                data-cliente="{{ strtolower($clienteNombre) }}"
+                                data-producto="{{ strtolower($producto) }}"
+                                data-monto="{{ $credito['capital'] ?? 0 }}"
+                                data-fecha="{{ $credito['fecha_credito'] ?? '' }}"
+                                data-search="{{ $searchText }}">
                                 <td>
-                                    <strong>{{ $credito['nombre_cliente'] ?? '' }}</strong>
+                                    <strong>{{ $clienteNombre ?: 'N/A' }}</strong>
                                 </td>
                                 <td>
-                                    <small>{{ Str::limit($credito['producto_o_servicio_dado'] ?? 'No especificado', 50) }}</small>
+                                    <small>{{ Str::limit($producto ?: 'No especificado', 40) }}</small>
                                 </td>
                                 <td>
                                     <strong>Q{{ number_format($credito['capital'] ?? 0, 2) }}</strong>
                                 </td>
                                 <td>
-                                    @if($credito['capital_restante'] > 0)
+                                    @if(($credito['capital_restante'] ?? 0) > 0)
                                         <strong class="text-danger">Q{{ number_format($credito['capital_restante'], 2) }}</strong>
                                     @else
                                         <span class="text-success">Q0.00</span>
@@ -213,7 +269,7 @@
                                     <small>{{ isset($credito['fecha_credito']) ? \Carbon\Carbon::parse($credito['fecha_credito'])->format('d/m/Y') : 'N/A' }}</small>
                                 </td>
                                 <td>
-                                    @if($credito['fecha_ultimo_pago'])
+                                    @if($credito['fecha_ultimo_pago'] ?? null)
                                         <small>{{ \Carbon\Carbon::parse($credito['fecha_ultimo_pago'])->format('d/m/Y') }}</small>
                                         <br>
                                         <small class="text-muted">Q{{ number_format($credito['ultima_cantidad_pagada'] ?? 0, 2) }}</small>
@@ -222,27 +278,28 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <form action="{{ route('creditos.change-status', $credito['id'] ?? '#') }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-{{ $estadoColors[$credito['estado']] ?? 'secondary' }}">
-                                            {{ $estadoLabels[$credito['estado']] ?? $credito['estado'] }}
-                                        </button>
-                                    </form>
+                                    <span class="badge bg-{{ $estadoColors[$credito['estado']] ?? 'secondary' }} p-2">
+                                        <i class="fas fa-{{ $credito['estado'] == 'activo' ? 'clock' : ($credito['estado'] == 'abonado' ? 'money-bill' : 'check-circle') }} me-1"></i>
+                                        {{ $estadoLabels[$credito['estado']] ?? $credito['estado'] }}
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('creditos.show', $credito['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver">
+                                        <a href="{{ route('creditos.show', $credito['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver detalles">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="{{ route('creditos.edit', $credito['id'] ?? '#') }}" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('creditos.destroy', $credito['id'] ?? '#') }}" method="POST" 
-                                              class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este crédito?')">
+                                        <a href="{{ route('creditos.registrar-pago', $credito['id'] ?? '#') }}" class="btn btn-sm btn-success" title="Registrar pago">
+                                            <i class="fas fa-money-bill"></i>
+                                        </a>
+                                        <form action="{{ route('creditos.change-status', $credito['id'] ?? '#') }}" method="POST" class="d-inline">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="submit" class="btn btn-sm btn-{{ $estadoColors[$credito['estado']] ?? 'secondary' }}" 
+                                                    title="Cambiar estado"
+                                                    onclick="return confirm('¿Estás seguro de cambiar el estado de este crédito?')">
+                                                <i class="fas fa-sync-alt"></i>
                                             </button>
                                         </form>
                                     </div>
@@ -253,7 +310,7 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
+                <!-- Paginación (mantener para navegación) -->
                 @if(!empty($creditosLinks) && count($creditosLinks) > 0)
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted">
@@ -290,26 +347,207 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Agregar tooltips a los botones de acciones
+    let currentFilter = 'todos';
+    let currentSort = 'fecha_desc';
+    let currentSearch = '';
+    
+    // Función para formatear fecha para comparación
+    function parseFecha(fechaStr) {
+        if (!fechaStr) return new Date(0);
+        return new Date(fechaStr);
+    }
+    
+    // Función para ordenar filas
+    function ordenarFilas(rows, sortType) {
+        const rowsArray = Array.from(rows);
+        
+        return rowsArray.sort((a, b) => {
+            switch(sortType) {
+                case 'fecha_desc':
+                    const fechaA = parseFecha(a.dataset.fecha);
+                    const fechaB = parseFecha(b.dataset.fecha);
+                    return fechaB - fechaA;
+                    
+                case 'monto_desc':
+                    const montoA = parseFloat(a.dataset.monto) || 0;
+                    const montoB = parseFloat(b.dataset.monto) || 0;
+                    return montoB - montoA;
+                    
+                default:
+                    return 0;
+            }
+        });
+    }
+    
+    // Función para reordenar la tabla
+    function reordenarTabla(rows) {
+        const tbody = document.querySelector('#creditosTable tbody');
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    // Función para aplicar todos los filtros
+    function aplicarFiltros() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+        currentSearch = searchText;
+        
+        const tbody = document.querySelector('#creditosTable tbody');
+        let rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Excluir fila de no resultados si existe
+        rows = rows.filter(row => row.id !== 'no-results-row');
+        
+        let visibleRows = [];
+        
+        rows.forEach(row => {
+            const estado = row.dataset.estado;
+            const searchData = row.dataset.search || '';
+            
+            // Verificar filtro de estado
+            const estadoMatch = currentFilter === 'todos' || estado === currentFilter;
+            
+            // Verificar búsqueda
+            const searchMatch = searchText === '' || searchData.includes(searchText);
+            
+            // Mostrar u ocultar fila
+            if (estadoMatch && searchMatch) {
+                row.style.display = '';
+                visibleRows.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Aplicar ordenamiento a las filas visibles
+        if (currentSort !== 'ninguno') {
+            visibleRows = ordenarFilas(visibleRows, currentSort);
+        }
+        
+        // Reinsertar las filas visibles en orden
+        const allRows = rows.filter(row => visibleRows.includes(row));
+        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
+        
+        // Primero eliminar todas las filas
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+        
+        // Agregar filas visibles ordenadas
+        visibleRows.forEach(row => tbody.appendChild(row));
+        
+        // Agregar filas ocultas al final
+        hiddenRows.forEach(row => tbody.appendChild(row));
+        
+        // Mostrar mensaje si no hay resultados
+        mostrarMensajeNoResultados(visibleRows.length, rows.length);
+    }
+    
+    // Función para mostrar mensaje cuando no hay resultados
+    function mostrarMensajeNoResultados(visibleCount, totalRows) {
+        const table = document.getElementById('creditosTable');
+        const tbody = table.querySelector('tbody');
+        let noResultsRow = document.getElementById('no-results-row');
+        
+        if (visibleCount === 0 && totalRows > 0) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="9" class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No se encontraron créditos</h5>
+                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
+                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                            <i class="fas fa-undo me-2"></i>Limpiar filtros
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(noResultsRow);
+            }
+        } else {
+            if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    }
+    
+    // Función para limpiar filtros
+    window.limpiarFiltros = function() {
+        // Resetear filtros
+        currentFilter = 'todos';
+        currentSort = 'fecha_desc';
+        
+        // Actualizar botones de estado
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Actualizar botones de ordenamiento
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.sort === 'fecha_desc') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Limpiar búsqueda
+        document.getElementById('searchInput').value = '';
+        
+        // Aplicar filtros
+        aplicarFiltros();
+    };
+    
+    // Filtrado por estado
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            aplicarFiltros();
+        });
+    });
+    
+    // Ordenamiento
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentSort = this.dataset.sort;
+            aplicarFiltros();
+        });
+    });
+    
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(aplicarFiltros, 300);
+    });
+    
+    // Botón limpiar búsqueda
+    document.getElementById('clearSearch').addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        aplicarFiltros();
+        document.getElementById('searchInput').focus();
+    });
+    
+    // Inicializar botones activos
+    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
+    document.querySelector('.sort-btn[data-sort="fecha_desc"]').classList.add('active');
+    
+    // Agregar tooltips a los botones
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
     // Confirmación antes de cambiar estado
-    const statusForms = document.querySelectorAll('form[action*="cambiar-estado"]');
+    const statusForms = document.querySelectorAll('form[action*="change-status"]');
     statusForms.forEach(form => {
         form.addEventListener('submit', function(e) {
-            const button = this.querySelector('button[type="submit"]');
-            const estadoActual = button.textContent.trim();
-            
-            // Determinar próximo estado
-            const estados = ['Activo', 'Abonado', 'Pagado'];
-            const currentIndex = estados.indexOf(estadoActual);
-            const nextIndex = (currentIndex + 1) % estados.length;
-            const nuevoEstado = estados[nextIndex];
-            
-            if (!confirm(`¿Cambiar estado del crédito de "${estadoActual}" a "${nuevoEstado}"?`)) {
+            if (!confirm('¿Estás seguro de cambiar el estado de este crédito?')) {
                 e.preventDefault();
             }
         });
@@ -329,9 +567,43 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.875rem;
 }
 
-/* Estilos para botones de estado */
-.btn-status {
-    min-width: 80px;
+/* Estilos para botones de filtro activos */
+.filter-btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.filter-btn[data-filter="activo"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.filter-btn[data-filter="abonado"].active {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.filter-btn[data-filter="pagado"].active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.sort-btn.active {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #000;
+}
+
+/* Estilos para cards de estadísticas */
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Estilos responsivos */
@@ -344,15 +616,25 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0.2rem 0.4rem;
         font-size: 0.8rem;
     }
-}
-
-/* Estilos para cards de estadísticas */
-.card {
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-2px);
+    
+    .row.mb-4 {
+        flex-direction: column;
+    }
+    
+    .col-md-7, .col-md-5 {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+    }
+    
+    .ms-2 {
+        margin-left: 0 !important;
+        margin-top: 0.25rem;
+    }
 }
 </style>
 @endpush

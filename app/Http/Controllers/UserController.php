@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ApiService;
+use Illuminate\Support\Facades\Log; // Añadir esto para los logs
 
 class UserController extends Controller
 {
@@ -19,12 +20,12 @@ class UserController extends Controller
         $response = $this->apiService->get('users');
         
         if ($response->successful()) {
-            $users = $response->json()['users'] ?? [];
+            $usuarios = $response->json()['users'] ?? [];
         } else {
-            $users = [];
+            $usuarios = [];
         }
 
-        return view('usuarios.index', compact('users'));
+        return view('usuarios.index', compact('usuarios'));
     }
 
     public function create()
@@ -58,41 +59,73 @@ class UserController extends Controller
 
     public function show($id)
     {
+        \Log::info("=== SHOW METHOD ===");
+        \Log::info("ID recibido: " . $id);
+        
         $response = $this->apiService->get("users/{$id}");
         
         if ($response->successful()) {
-            $user = $response->json()['user'] ?? null;
-            return view('usuarios.show', compact('user'));
+            $data = $response->json();
+            \Log::info("Respuesta de API:", $data);
+            
+            // Cambiamos de $user a $usuario
+            $usuario = $data['user'] ?? null;
+            \Log::info("Usuario encontrado: ", $usuario ?? []);
+            
+            return view('usuarios.show', compact('usuario'));
         }
 
+        \Log::error("Usuario no encontrado con ID: " . $id);
         return redirect()->route('usuarios.index')
             ->with('error', 'Usuario no encontrado');
     }
 
     public function edit($id)
     {
+        \Log::info("=== EDIT METHOD ===");
+        \Log::info("ID recibido: " . $id);
+        
         $response = $this->apiService->get("users/{$id}");
         
         if ($response->successful()) {
-            $user = $response->json()['user'] ?? null;
-            return view('usuarios.edit', compact('user'));
+            $data = $response->json();
+            \Log::info("Respuesta de API:", $data);
+            
+            // Cambiamos de $user a $usuario
+            $usuario = $data['user'] ?? null;
+            \Log::info("Usuario encontrado: ", $usuario ?? []);
+            
+            return view('usuarios.edit', compact('usuario'));
         }
 
+        \Log::error("Usuario no encontrado con ID: " . $id);
         return redirect()->route('usuarios.index')
             ->with('error', 'Usuario no encontrado');
     }
 
     public function update(Request $request, $id)
     {
+        \Log::info("=== UPDATE METHOD ===");
+        \Log::info("ID recibido: " . $id);
+        \Log::info("Datos recibidos:", $request->except('password', 'password_confirmation'));
+
+        // Validaciones básicas de formato (sin reglas de unicidad)
         $request->validate([
             'nombres' => 'required|string|max:100',
             'apellidos' => 'required|string|max:100',
-            'email' => 'required|email' . $id,
-            'username' => 'required|string|max:50' . $id,
+            'email' => 'required|email|max:100',
+            'username' => 'required|string|max:50',
             'rol' => 'required|in:administrador,vendedor,analista',
             'telefono' => 'nullable|string|max:20',
             'direccion' => 'nullable|string|max:255',
         ]);
+
+        // Si se envía contraseña, validarla
+        if ($request->filled('password')) {
+            $request->validate([
+                'password' => 'min:8|confirmed',
+            ]);
+        }
 
         $response = $this->apiService->put("users/{$id}", $request->all());
 
@@ -101,12 +134,18 @@ class UserController extends Controller
                 ->with('success', 'Usuario actualizado exitosamente');
         }
 
-        return back()->withErrors($response->json()['errors'] ?? ['Error al actualizar usuario'])
-                    ->withInput();
+        // Capturar errores de la API
+        $errors = $response->json()['errors'] ?? ['Error al actualizar usuario'];
+        
+        return back()->withErrors($errors)
+                    ->withInput($request->except('password', 'password_confirmation'));
     }
 
     public function destroy($id)
     {
+        \Log::info("=== DESTROY METHOD FRONTEND ===");
+        \Log::info("ID recibido: " . $id);
+        
         $response = $this->apiService->delete("users/{$id}");
 
         if ($response->successful()) {
@@ -114,7 +153,46 @@ class UserController extends Controller
                 ->with('success', 'Usuario eliminado exitosamente');
         }
 
+        // Capturar errores específicos de la API
+        $errorData = $response->json();
+        $errorMessage = 'Error al eliminar usuario';
+        
+        if (isset($errorData['errors']['relaciones'])) {
+            // Si es un error por relaciones, formateamos el mensaje
+            $errorMessage = implode('<br>', $errorData['errors']['relaciones']);
+            return redirect()->route('usuarios.index')
+                ->with('error_relaciones', $errorMessage);
+        } elseif (isset($errorData['message'])) {
+            $errorMessage = $errorData['message'];
+        }
+
         return redirect()->route('usuarios.index')
-            ->with('error', 'Error al eliminar usuario');
+            ->with('error', $errorMessage);
+    }
+
+    /**
+     * Cambiar estado del usuario
+     */
+    public function changeStatus(Request $request, $id)
+    {
+        \Log::info("=== CHANGE STATUS METHOD ===");
+        \Log::info("ID recibido: " . $id);
+        \Log::info("Estado solicitado: " . $request->estado);
+        
+        $request->validate([
+            'estado' => 'required|in:activo,inactivo'
+        ]);
+
+        $response = $this->apiService->post("users/{$id}/change-status", [
+            'estado' => $request->estado
+        ]);
+
+        if ($response->successful()) {
+            return redirect()->route('usuarios.index')
+                ->with('success', 'Estado del usuario actualizado exitosamente');
+        }
+
+        return redirect()->route('usuarios.index')
+            ->with('error', 'Error al cambiar el estado del usuario');
     }
 }

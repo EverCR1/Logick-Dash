@@ -46,6 +46,7 @@ Route::middleware(['web.auth'])->group(function () {
         Route::get('/{id}/editar', [UserController::class, 'edit'])->name('usuarios.edit');
         Route::put('/{id}', [UserController::class, 'update'])->name('usuarios.update');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+        Route::post('/{id}/cambiar-estado', [UserController::class, 'changeStatus'])->name('usuarios.cambiar-estado');
     });
     
     // Proveedores (admin y vendedor)
@@ -57,6 +58,7 @@ Route::middleware(['web.auth'])->group(function () {
         Route::get('/{id}/editar', [ProveedorController::class, 'edit'])->name('proveedores.edit');
         Route::put('/{id}', [ProveedorController::class, 'update'])->name('proveedores.update');
         Route::delete('/{id}', [ProveedorController::class, 'destroy'])->name('proveedores.destroy');
+        Route::post('/{id}/cambiar-estado', [ProveedorController::class, 'changeStatus'])->name('proveedores.changeStatus');
     });
     
     // Categorías (todos pueden ver, solo admin/vendedor modificar)
@@ -65,6 +67,7 @@ Route::middleware(['web.auth'])->group(function () {
     Route::middleware(['role:administrador,vendedor'])->prefix('categorias')->group(function () {
         Route::get('/crear', [CategoriaController::class, 'create'])->name('categorias.create');
         Route::post('/', [CategoriaController::class, 'store'])->name('categorias.store');
+        Route::get('/{id}', [CategoriaController::class, 'show'])->name('categorias.show');
         Route::get('/{id}/editar', [CategoriaController::class, 'edit'])->name('categorias.edit');
         Route::put('/{id}', [CategoriaController::class, 'update'])->name('categorias.update');
         Route::delete('/{id}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');

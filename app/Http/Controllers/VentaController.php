@@ -102,12 +102,19 @@ class VentaController extends Controller
         }
     }
 
-    /**
+        /**
      * Almacenar nueva venta con múltiples productos/servicios
      */
     public function store(Request $request)
     {
         try {
+            // PASO 0: Decodificar items si viene como string JSON (por si acaso)
+            if ($request->has('items') && is_string($request->items)) {
+                $request->merge([
+                    'items' => json_decode($request->items, true)
+                ]);
+            }
+
             // PASO 1: Validación básica
             $request->validate([
                 'items' => 'required|array|min:1',
@@ -212,17 +219,92 @@ class VentaController extends Controller
                 $venta = $data['venta'] ?? null;
                 
                 if ($venta) {
+                    // Transformar detalles a items si es necesario
+                    if (isset($venta['detalles']) && !isset($venta['items'])) {
+                        $venta['items'] = [];
+                        $venta['total_subtotal'] = 0;
+                        $venta['total_descuento'] = 0;
+                        
+                        foreach ($venta['detalles'] as $detalle) {
+                            // Determinar el tipo (producto o servicio)
+                            $tipo = 'otro';
+                            $descripcion = '';
+                            $referencia = '';
+                            $producto_id = null;
+                            $servicio_id = null;
+                            
+                            if (isset($detalle['producto']) && $detalle['producto']) {
+                                $tipo = 'producto';
+                                $descripcion = $detalle['producto']['nombre'] ?? 'Producto sin nombre';
+                                $referencia = $detalle['producto']['codigo'] ?? $detalle['producto']['referencia'] ?? '';
+                                $producto_id = $detalle['producto']['id'] ?? null;
+                            } elseif (isset($detalle['servicio']) && $detalle['servicio']) {
+                                $tipo = 'servicio';
+                                $descripcion = $detalle['servicio']['nombre'] ?? 'Servicio sin nombre';
+                                $referencia = $detalle['servicio']['codigo'] ?? '';
+                                $servicio_id = $detalle['servicio']['id'] ?? null;
+                            } else {
+                                // Si no hay relaciones, usar datos del detalle
+                                $tipo = $detalle['tipo'] ?? 'otro';
+                                $descripcion = $detalle['descripcion'] ?? 'Item sin descripción';
+                                $referencia = $detalle['referencia'] ?? '';
+                            }
+                            
+                            // Calcular subtotal y total
+                            $cantidad = $detalle['cantidad'] ?? 1;
+                            $precio_unitario = $detalle['precio_unitario'] ?? $detalle['precio'] ?? 0;
+                            $descuento = $detalle['descuento'] ?? 0;
+                            $subtotal = $cantidad * $precio_unitario;
+                            $total = $subtotal - $descuento;
+                            
+                            // Acumular totales
+                            $venta['total_subtotal'] += $subtotal;
+                            $venta['total_descuento'] += $descuento;
+                            
+                            // Crear item transformado
+                            $venta['items'][] = [
+                                'id' => $detalle['id'] ?? null,
+                                'tipo' => $tipo,
+                                'descripcion' => $descripcion,
+                                'referencia' => $referencia,
+                                'cantidad' => $cantidad,
+                                'precio_unitario' => $precio_unitario,
+                                'descuento' => $descuento,
+                                'subtotal' => $subtotal,
+                                'total' => $total,
+                                'producto_id' => $producto_id,
+                                'servicio_id' => $servicio_id,
+                                'observaciones' => $detalle['observaciones'] ?? ''
+                            ];
+                        }
+                    }
+                    
+                    // Asegurar que el total esté presente
+                    if (!isset($venta['total']) && isset($venta['total_subtotal']) && isset($venta['total_descuento'])) {
+                        $venta['total'] = $venta['total_subtotal'] - $venta['total_descuento'];
+                    }
+                    
+                    // Asegurar fecha
+                    if (!isset($venta['fecha'])) {
+                        $venta['fecha'] = $venta['created_at'] ?? now();
+                    }
+                    
                     return view('ventas.show', compact('venta'));
                 }
+                
+                // Si no hay venta, redirigir con error
+                return redirect()->route('ventas.index')
+                    ->with('error', 'No se encontraron datos de la venta');
             }
-
+            
+            // Si la respuesta no fue exitosa
             return redirect()->route('ventas.index')
-                ->with('error', 'Venta no encontrada');
+                ->with('error', 'Error al obtener los detalles de la venta');
             
         } catch (\Exception $e) {
-            Log::error('Error mostrando venta: ' . $e->getMessage());
+            Log::error('Error en show de ventas: ' . $e->getMessage());
             return redirect()->route('ventas.index')
-                ->with('error', 'Error al cargar la venta');
+                ->with('error', 'Error al cargar los detalles de la venta: ' . $e->getMessage());
         }
     }
 

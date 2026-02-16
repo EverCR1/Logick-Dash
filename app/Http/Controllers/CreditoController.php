@@ -17,14 +17,40 @@ class CreditoController extends Controller
     /**
      * Mostrar lista de créditos
      */
-    public function index()
+    public function index(Request $request)
     {
-        $response = $this->apiService->get('creditos');
+        $page = $request->get('page', 1);
+        
+        $response = $this->apiService->get('creditos', [
+            'page' => $page
+        ]);
         
         if ($response->successful()) {
             $data = $response->json();
             $creditos = $data['creditos'] ?? [];
             $estadisticas = $data['estadisticas'] ?? [];
+            
+            // Transformar los links de paginación para que usen las rutas del frontend
+            if (isset($creditos['links'])) {
+                $creditos['links'] = $this->transformPaginationLinks($creditos['links'], $request->path());
+            }
+            
+            // Transformar las URLs en los links de paginación
+            if (isset($creditos['links'])) {
+                foreach ($creditos['links'] as &$link) {
+                    if (isset($link['url']) && $link['url']) {
+                        // Extraer el número de página de la URL original
+                        $parsedUrl = parse_url($link['url']);
+                        parse_str($parsedUrl['query'] ?? '', $queryParams);
+                        $page = $queryParams['page'] ?? null;
+                        
+                        if ($page) {
+                            // Reemplazar con la ruta del frontend
+                            $link['url'] = route('creditos.index', ['page' => $page]);
+                        }
+                    }
+                }
+            }
         } else {
             $creditos = [
                 'data' => [],
@@ -35,6 +61,29 @@ class CreditoController extends Controller
         }
 
         return view('creditos.index', compact('creditos', 'estadisticas'));
+    }
+    
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     /**

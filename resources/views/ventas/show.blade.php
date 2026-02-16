@@ -5,394 +5,372 @@
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
     <li class="breadcrumb-item"><a href="{{ route('ventas.index') }}">Ventas</a></li>
-    <li class="breadcrumb-item active">Detalle Venta</li>
+    <li class="breadcrumb-item active">Detalle de Venta #{{ $venta['id'] }}</li>
 @endsection
 
 @section('content')
 <div class="container-fluid">
-    @if(!$venta)
-        <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i> Venta no encontrada
-        </div>
-        <a href="{{ route('ventas.index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-2"></i> Volver a Ventas
-        </a>
-    @else
-        <div class="row">
-            <!-- Información Principal -->
-            <div class="col-lg-8">
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-receipt me-2"></i> Detalle de Venta #{{ $venta['referencia'] ?? 'N/A' }}
-                        </h5>
-                        <div>
-                            @if($venta['estado'] !== 'cancelada')
-                                <form action="{{ route('ventas.cancelar', $venta['id']) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de cancelar esta venta?')">
-                                        <i class="fas fa-ban me-1"></i> Cancelar Venta
-                                    </button>
-                                </form>
-                            @endif
-                            <a href="{{ route('ventas.index') }}" class="btn btn-secondary btn-sm ms-2">
-                                <i class="fas fa-arrow-left me-1"></i> Volver
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-sm">
-                                    <tr>
-                                        <th style="width: 40%;">Referencia:</th>
-                                        <td><strong>{{ $venta['referencia'] ?? 'N/A' }}</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Fecha:</th>
-                                        <td>{{ \Carbon\Carbon::parse($venta['created_at'])->format('d/m/Y h:i A') }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Estado:</th>
-                                        <td>
-                                            @php
-                                                $estadoColor = 'warning';
-                                                if ($venta['estado'] == 'completada') $estadoColor = 'success';
-                                                if ($venta['estado'] == 'cancelada') $estadoColor = 'danger';
-                                            @endphp
-                                            <span class="badge bg-{{ $estadoColor }}">
-                                                {{ ucfirst($venta['estado']) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Tipo:</th>
-                                        <td>
-                                            @php
-                                                $tipoColor = 'secondary';
-                                                if ($venta['tipo'] == 'producto') $tipoColor = 'primary';
-                                                if ($venta['tipo'] == 'servicio') $tipoColor = 'info';
-                                            @endphp
-                                            <span class="badge bg-{{ $tipoColor }}">
-                                                {{ ucfirst($venta['tipo']) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <table class="table table-sm">
-                                    <tr>
-                                        <th style="width: 40%;">Cliente:</th>
-                                        <td>{{ $venta['cliente']['nombre'] ?? 'Cliente no especificado' }}</td>
-                                    </tr>
-                                    @if(!empty($venta['cliente']['nit']))
-                                    <tr>
-                                        <th>NIT:</th>
-                                        <td>{{ $venta['cliente']['nit'] }}</td>
-                                    </tr>
-                                    @endif
-                                    @if(!empty($venta['cliente']['telefono']))
-                                    <tr>
-                                        <th>Teléfono:</th>
-                                        <td>{{ $venta['cliente']['telefono'] }}</td>
-                                    </tr>
-                                    @endif
-                                    <tr>
-                                        <th>Método de Pago:</th>
-                                        <td>
-                                            @php
-                                                $metodoColor = 'warning';
-                                                if ($venta['metodo_pago'] == 'efectivo') $metodoColor = 'success';
-                                                if ($venta['metodo_pago'] == 'tarjeta') $metodoColor = 'info';
-                                                if ($venta['metodo_pago'] == 'transferencia') $metodoColor = 'primary';
-                                            @endphp
-                                            <span class="badge bg-{{ $metodoColor }}">
-                                                {{ ucfirst($venta['metodo_pago']) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Vendedor:</th>
-                                        <td>{{ $venta['usuario']['nombre_completo'] ?? $venta['usuario']['nombres'] ?? 'N/A' }}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <!-- Detalle del Producto/Servicio -->
-                        <div class="mt-4">
-                            <h6 class="border-bottom pb-2 mb-3">
-                                <i class="fas fa-info-circle me-2"></i> Detalle del Item Vendido
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h5>{{ $venta['descripcion'] }}</h5>
-                                            
-                                            @if($venta['tipo'] == 'producto' && !empty($venta['producto']))
-                                            <div class="mt-3">
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <th style="width: 40%;">Producto:</th>
-                                                        <td>{{ $venta['producto']['nombre'] ?? 'N/A' }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>SKU:</th>
-                                                        <td>{{ $venta['producto']['sku'] ?? 'N/A' }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Marca:</th>
-                                                        <td>{{ $venta['producto']['marca'] ?? 'N/A' }}</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                            @endif
-                                            
-                                            @if($venta['tipo'] == 'servicio' && !empty($venta['servicio']))
-                                            <div class="mt-3">
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <th style="width: 40%;">Servicio:</th>
-                                                        <td>{{ $venta['servicio']['nombre'] ?? 'N/A' }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Código:</th>
-                                                        <td>{{ $venta['servicio']['codigo'] ?? 'N/A' }}</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-center mb-3">Resumen Financiero</h6>
-                                            
-                                            <table class="table table-sm">
-                                                <tr>
-                                                    <td>Cantidad:</td>
-                                                    <td class="text-end"><strong>{{ $venta['cantidad'] }}</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Precio Unitario:</td>
-                                                    <td class="text-end">Q{{ number_format($venta['precio_unitario'], 2) }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Subtotal:</td>
-                                                    <td class="text-end">Q{{ number_format($venta['precio_unitario'] * $venta['cantidad'], 2) }}</td>
-                                                </tr>
-                                                @if($venta['descuento'] > 0)
-                                                <tr>
-                                                    <td>Descuento:</td>
-                                                    <td class="text-end text-danger">-Q{{ number_format($venta['descuento'], 2) }}</td>
-                                                </tr>
-                                                @endif
-                                                <tr class="table-active">
-                                                    <td><strong>TOTAL:</strong></td>
-                                                    <td class="text-end">
-                                                        <strong class="h5">Q{{ number_format($venta['total'], 2) }}</strong>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Observaciones -->
-                        @if(!empty($venta['observaciones']))
-                        <div class="mt-4">
-                            <h6 class="border-bottom pb-2 mb-3">
-                                <i class="fas fa-sticky-note me-2"></i> Observaciones
-                            </h6>
-                            <div class="card">
-                                <div class="card-body">
-                                    {{ $venta['observaciones'] }}
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-                    </div>
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-invoice me-2"></i> Detalle de Venta #{{ $venta['id'] }}
+                </h5>
+                <div>
+                    <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-2"></i> Volver
+                    </a>
+                    @if($venta['estado'] === 'pendiente' || $venta['estado'] === 'completada')
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i> Imprimir
+                    </button>
+                    @endif
+                    @if($venta['estado'] === 'pendiente' || $venta['estado'] === 'completada')
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmarCancelacion({{ $venta['id'] }})">
+                        <i class="fas fa-ban me-2"></i> Cancelar Venta
+                    </button>
+                    @endif
                 </div>
             </div>
-            
-            <!-- Información Adicional -->
-            <div class="col-lg-4">
-                <!-- Información del Cliente -->
-                @if(!empty($venta['cliente']))
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-user me-2"></i> Información del Cliente
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="text-center mb-3">
-                            <div class="avatar-circle bg-primary mb-2">
-                                <span class="avatar-text">
-                                    {{ substr($venta['cliente']['nombre'], 0, 1) }}
+        </div>
+        
+        <div class="card-body">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <!-- Estado de la venta -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    @php
+                        $estadoClass = [
+                            'completada' => 'success',
+                            'pendiente' => 'warning',
+                            'cancelada' => 'danger',
+                            'anulada' => 'secondary'
+                        ][$venta['estado']] ?? 'secondary';
+                        
+                        $estadoTexto = [
+                            'completada' => 'Completada',
+                            'pendiente' => 'Pendiente',
+                            'cancelada' => 'Cancelada',
+                            'anulada' => 'Anulada'
+                        ][$venta['estado']] ?? $venta['estado'];
+                        
+                        // Determinar qué campo de fecha usar
+                        $fechaVenta = $venta['fecha'] ?? $venta['fecha_venta'] ?? $venta['created_at'] ?? $venta['fecha_creacion'] ?? null;
+                    @endphp
+                    <div class="alert alert-{{ $estadoClass }} mb-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Estado:</strong> 
+                                <span class="badge bg-{{ $estadoClass }} bg-opacity-50 text-dark">
+                                    {{ $estadoTexto }}
                                 </span>
                             </div>
-                            <h5>{{ $venta['cliente']['nombre'] }}</h5>
+                            <div>
+                                <strong>Fecha:</strong> 
+                                @if($fechaVenta)
+                                    {{ \Carbon\Carbon::parse($fechaVenta)->format('d/m/Y H:i') }}
+                                @else
+                                    <span class="text-muted">No disponible</span>
+                                @endif
+                            </div>
                         </div>
-                        
-                        <table class="table table-sm">
-                            @if(!empty($venta['cliente']['nit']))
-                            <tr>
-                                <td><i class="fas fa-id-card me-2 text-muted"></i> NIT:</td>
-                                <td class="text-end">{{ $venta['cliente']['nit'] }}</td>
-                            </tr>
-                            @endif
-                            @if(!empty($venta['cliente']['email']))
-                            <tr>
-                                <td><i class="fas fa-envelope me-2 text-muted"></i> Email:</td>
-                                <td class="text-end">{{ $venta['cliente']['email'] }}</td>
-                            </tr>
-                            @endif
-                            @if(!empty($venta['cliente']['telefono']))
-                            <tr>
-                                <td><i class="fas fa-phone me-2 text-muted"></i> Teléfono:</td>
-                                <td class="text-end">{{ $venta['cliente']['telefono'] }}</td>
-                            </tr>
-                            @endif
-                            <tr>
-                                <td><i class="fas fa-user-tag me-2 text-muted"></i> Tipo:</td>
-                                <td class="text-end">{{ ucfirst($venta['cliente']['tipo'] ?? 'natural') }}</td>
-                            </tr>
-                            <tr>
-                                <td><i class="fas fa-calendar me-2 text-muted"></i> Registrado:</td>
-                                <td class="text-end">
-                                    {{ \Carbon\Carbon::parse($venta['cliente']['created_at'] ?? now())->format('d/m/Y') }}
-                                </td>
-                            </tr>
-                        </table>
-                        
-                        <a href="{{ route('clientes.show', $venta['cliente']['id']) }}" class="btn btn-outline-primary btn-sm w-100">
-                            <i class="fas fa-external-link-alt me-2"></i> Ver Cliente
-                        </a>
                     </div>
                 </div>
-                @endif
+            </div>
+
+            <!-- Información del cliente y venta -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user me-2"></i> Información del Cliente</h6>
+                        </div>
+                        <div class="card-body">
+                            @if($venta['cliente'])
+                                <p class="mb-1"><strong>Nombre:</strong> {{ $venta['cliente']['nombre'] }}</p>
+                                @if(!empty($venta['cliente']['nit']))
+                                    <p class="mb-1"><strong>NIT:</strong> {{ $venta['cliente']['nit'] }}</p>
+                                @endif
+                                @if(!empty($venta['cliente']['telefono']))
+                                    <p class="mb-1"><strong>Teléfono:</strong> {{ $venta['cliente']['telefono'] }}</p>
+                                @endif
+                                @if(!empty($venta['cliente']['email']))
+                                    <p class="mb-1"><strong>Email:</strong> {{ $venta['cliente']['email'] }}</p>
+                                @endif
+                            @else
+                                <p class="text-muted mb-0">Cliente ocasional / No registrado</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
                 
-                <!-- Información del Producto/Servicio -->
-                @if($venta['tipo'] == 'producto' && !empty($venta['producto']))
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-box me-2"></i> Información del Producto
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr>
-                                <td>SKU:</td>
-                                <td class="text-end">{{ $venta['producto']['sku'] ?? 'N/A' }}</td>
-                            </tr>
-                            <tr>
-                                <td>Marca:</td>
-                                <td class="text-end">{{ $venta['producto']['marca'] ?? 'N/A' }}</td>
-                            </tr>
-                            <tr>
-                                <td>Color:</td>
-                                <td class="text-end">{{ $venta['producto']['color'] ?? 'N/A' }}</td>
-                            </tr>
-                            <tr>
-                                <td>Precio Compra:</td>
-                                <td class="text-end">Q{{ number_format($venta['producto']['precio_compra'] ?? 0, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Precio Venta:</td>
-                                <td class="text-end">Q{{ number_format($venta['producto']['precio_venta'] ?? 0, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Stock Actual:</td>
-                                <td class="text-end">
-                                    <span class="badge {{ ($venta['producto']['stock'] ?? 0) <= ($venta['producto']['stock_minimo'] ?? 0) ? 'bg-danger' : 'bg-success' }}">
-                                        {{ $venta['producto']['stock'] ?? 0 }}
-                                    </span>
-                                </td>
-                            </tr>
-                        </table>
-                        
-                        <a href="{{ route('productos.show', $venta['producto']['id']) }}" class="btn btn-outline-primary btn-sm w-100">
-                            <i class="fas fa-external-link-alt me-2"></i> Ver Producto
-                        </a>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i> Información de Pago</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1">
+                                <strong>Método de pago:</strong> 
+                                <span class="badge bg-info">
+                                    {{ [
+                                        'efectivo' => 'Efectivo',
+                                        'tarjeta' => 'Tarjeta',
+                                        'transferencia' => 'Transferencia',
+                                        'mixto' => 'Mixto'
+                                    ][$venta['metodo_pago']] ?? $venta['metodo_pago'] }}
+                                </span>
+                            </p>
+                            @if($venta['es_credito'] ?? false)
+                                <p class="mb-1">
+                                    <strong>Tipo:</strong> 
+                                    <span class="badge bg-warning">Crédito</span>
+                                </p>
+                                @if(isset($venta['fecha_vencimiento']))
+                                    <p class="mb-1">
+                                        <strong>Fecha vencimiento:</strong> 
+                                        {{ \Carbon\Carbon::parse($venta['fecha_vencimiento'])->format('d/m/Y') }}
+                                    </p>
+                                @endif
+                                @if(isset($venta['saldo_pendiente']) && $venta['saldo_pendiente'] > 0)
+                                    <p class="mb-1">
+                                        <strong>Saldo pendiente:</strong> 
+                                        <span class="text-danger">Q{{ number_format($venta['saldo_pendiente'], 2) }}</span>
+                                    </p>
+                                @endif
+                            @else
+                                <p class="mb-1">
+                                    <strong>Tipo:</strong> 
+                                    <span class="badge bg-success">Contado</span>
+                                </p>
+                            @endif
+                        </div>
                     </div>
                 </div>
-                @endif
+            </div>
+
+            <!-- Items de la venta -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-boxes me-2"></i> Items de la Venta</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Tipo</th>
+                                            <th>Descripción</th>
+                                            <th class="text-center">Cantidad</th>
+                                            <th class="text-end">Precio Unit.</th>
+                                            <th class="text-end">Descuento</th>
+                                            <th class="text-end">Subtotal</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($venta['items'] ?? [] as $index => $item)
+                                        <tr>
+                                            <td>{{ $index + 1 }}</td>
+                                            <td>
+                                                @php
+                                                    $tipoClass = [
+                                                        'producto' => 'primary',
+                                                        'servicio' => 'info',
+                                                        'otro' => 'secondary'
+                                                    ][$item['tipo']] ?? 'secondary';
+                                                @endphp
+                                                <span class="badge bg-{{ $tipoClass }}">
+                                                    {{ ucfirst($item['tipo']) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {{ $item['descripcion'] }}
+                                                @if(!empty($item['referencia']))
+                                                    <br><small class="text-muted">Ref: {{ $item['referencia'] }}</small>
+                                                @endif
+                                                @if(!empty($item['producto_id']))
+                                                    <br><small class="text-muted">ID Producto: {{ $item['producto_id'] }}</small>
+                                                @endif
+                                                @if(!empty($item['servicio_id']))
+                                                    <br><small class="text-muted">ID Servicio: {{ $item['servicio_id'] }}</small>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">{{ $item['cantidad'] }}</td>
+                                            <td class="text-end">Q{{ number_format($item['precio_unitario'], 2) }}</td>
+                                            <td class="text-end {{ $item['descuento'] > 0 ? 'text-danger' : '' }}">
+                                                Q{{ number_format($item['descuento'] ?? 0, 2) }}
+                                            </td>
+                                            <td class="text-end">
+                                                Q{{ number_format($item['cantidad'] * $item['precio_unitario'], 2) }}
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>Q{{ number_format($item['total'] ?? ($item['cantidad'] * $item['precio_unitario'] - ($item['descuento'] ?? 0)), 2) }}</strong>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4">
+                                                <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted">No hay items en esta venta</p>
+                                            </td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary">
+                                            <td colspan="5" class="text-end"><strong>Totales:</strong></td>
+                                            <td class="text-end">
+                                                <strong>Q{{ number_format($venta['total_descuento'] ?? 0, 2) }}</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>Q{{ number_format($venta['total_subtotal'] ?? 0, 2) }}</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-primary">Q{{ number_format($venta['total'] ?? 0, 2) }}</strong>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observaciones y totales adicionales -->
+            <div class="row">
+                <div class="col-md-8">
+                    @if(!empty($venta['observaciones']))
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-comment me-2"></i> Observaciones</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ $venta['observaciones'] }}</p>
+                        </div>
+                    </div>
+                    @endif
+                </div>
                 
-                @if($venta['tipo'] == 'servicio' && !empty($venta['servicio']))
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-concierge-bell me-2"></i> Información del Servicio
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr>
-                                <td>Código:</td>
-                                <td class="text-end">{{ $venta['servicio']['codigo'] ?? 'N/A' }}</td>
-                            </tr>
-                            <tr>
-                                <td>Inversión:</td>
-                                <td class="text-end">Q{{ number_format($venta['servicio']['inversion_estimada'] ?? 0, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Precio Venta:</td>
-                                <td class="text-end">Q{{ number_format($venta['servicio']['precio_venta'] ?? 0, 2) }}</td>
-                            </tr>
-                        </table>
-                        
-                        <a href="{{ route('servicios.show', $venta['servicio']['id']) }}" class="btn btn-outline-primary btn-sm w-100">
-                            <i class="fas fa-external-link-alt me-2"></i> Ver Servicio
-                        </a>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td>Subtotal:</td>
+                                    <td class="text-end">Q{{ number_format($venta['total_subtotal'] ?? 0, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Descuento total:</td>
+                                    <td class="text-end text-danger">- Q{{ number_format($venta['total_descuento'] ?? 0, 2) }}</td>
+                                </tr>
+                                @if(($venta['impuesto'] ?? 0) > 0)
+                                <tr>
+                                    <td>Impuesto ({{ $venta['impuesto_porcentaje'] ?? 12 }}%):</td>
+                                    <td class="text-end">Q{{ number_format($venta['impuesto'] ?? 0, 2) }}</td>
+                                </tr>
+                                @endif
+                                <tr class="border-top">
+                                    <td><strong>TOTAL:</strong></td>
+                                    <td class="text-end"><strong class="text-primary fs-5">Q{{ number_format($venta['total'] ?? 0, 2) }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        @if($venta['estado'] === 'pendiente' || $venta['estado'] === 'completada')
+        <div class="card-footer">
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Volver
+                </a>
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i> Imprimir
+                </button>
+                @if($venta['estado'] !== 'cancelada' && $venta['estado'] !== 'anulada')
+                <button type="button" class="btn btn-danger" onclick="confirmarCancelacion({{ $venta['id'] }})">
+                    <i class="fas fa-ban me-2"></i> Cancelar Venta
+                </button>
                 @endif
             </div>
         </div>
-    @endif
+        @endif
+    </div>
+</div>
+
+<!-- Modal de confirmación para cancelar venta -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Cancelar Venta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea cancelar esta venta?</p>
+                <p class="text-danger mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Esta acción no se puede deshacer y revertirá el stock de los productos.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, mantener</button>
+                <form id="formCancelar" method="POST" action="">
+                    @csrf
+                    <button type="submit" class="btn btn-danger">Sí, cancelar venta</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
+@push('scripts')
+<script>
+function confirmarCancelacion(id) {
+    const form = document.getElementById('formCancelar');
+    form.action = `{{ url('ventas') }}/${id}/cancelar`;
+    new bootstrap.Modal(document.getElementById('modalCancelar')).show();
+}
+
+// Corregir función number_exists (si no existe)
+function number_format(number, decimals) {
+    return new Intl.NumberFormat('es-GT', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    }).format(number);
+}
+</script>
+@endpush
+
 @push('styles')
 <style>
-.avatar-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.avatar-text {
-    color: white;
-    font-size: 2rem;
-    font-weight: bold;
-}
-
-.table-sm td, .table-sm th {
-    padding: 0.5rem;
-}
-
-.card-title {
-    font-size: 1.1rem;
-}
-
-.badge {
-    font-size: 0.8em;
-    padding: 0.3em 0.6em;
+@media print {
+    .btn, .card-header, .card-footer, .breadcrumb, footer, nav {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+    }
+    .card-body {
+        padding: 0 !important;
+    }
+    .table {
+        border: 1px solid #000 !important;
+    }
 }
 </style>
 @endpush

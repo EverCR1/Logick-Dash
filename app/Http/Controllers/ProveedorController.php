@@ -112,4 +112,23 @@ class ProveedorController extends Controller
         return redirect()->route('proveedores.index')
             ->with('error', 'Error al eliminar proveedor');
     }
+
+    /**
+     * Cambiar estado del proveedor
+     */
+    public function changeStatus(Request $request, $id)
+    {
+        $response = $this->apiService->post("proveedores/{$id}/change-status", [
+            'estado' => $request->estado
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return redirect()->route('proveedores.index')
+                ->with('success', $data['message'] ?? 'Estado cambiado exitosamente');
+        }
+
+        return redirect()->route('proveedores.index')
+            ->with('error', 'Error al cambiar el estado del proveedor');
+    }
 }

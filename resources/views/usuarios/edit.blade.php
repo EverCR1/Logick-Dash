@@ -1,25 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Crear Usuario - LOGICK')
+@section('title', 'Editar Usuario - LOGICK')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
     <li class="breadcrumb-item"><a href="{{ route('usuarios.index') }}">Usuarios</a></li>
-    <li class="breadcrumb-item active">Crear Usuario</li>
+    <li class="breadcrumb-item"><a href="{{ route('usuarios.show', $usuario['id']) }}">{{ $usuario['nombres'] }} {{ $usuario['apellidos'] }}</a></li>
+    <li class="breadcrumb-item active">Editar</li>
 @endsection
 
 @section('content')
 <div class="container-fluid">
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-warning">
             <h5 class="card-title mb-0">
-                <i class="fas fa-user-plus me-2"></i>
-                Crear Nuevo Usuario
+                <i class="fas fa-user-edit me-2"></i>
+                Editar Usuario: {{ $usuario['nombres'] }} {{ $usuario['apellidos'] }}
             </h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('usuarios.store') }}" method="POST" id="formUsuario">
+            <form action="{{ route('usuarios.update', $usuario['id']) }}" method="POST" id="formUsuario">
                 @csrf
+                @method('PUT')
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -28,8 +30,7 @@
                             Nombres <span class="text-danger">*</span>
                         </label>
                         <input type="text" class="form-control @error('nombres') is-invalid @enderror" 
-                               id="nombres" name="nombres" value="{{ old('nombres') }}" 
-                               placeholder="Ingrese los nombres" required autofocus>
+                               id="nombres" name="nombres" value="{{ old('nombres', $usuario['nombres']) }}" required>
                         @error('nombres')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -41,8 +42,7 @@
                             Apellidos <span class="text-danger">*</span>
                         </label>
                         <input type="text" class="form-control @error('apellidos') is-invalid @enderror" 
-                               id="apellidos" name="apellidos" value="{{ old('apellidos') }}" 
-                               placeholder="Ingrese los apellidos" required>
+                               id="apellidos" name="apellidos" value="{{ old('apellidos', $usuario['apellidos']) }}" required>
                         @error('apellidos')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -54,12 +54,10 @@
                             Email <span class="text-danger">*</span>
                         </label>
                         <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                               id="email" name="email" value="{{ old('email') }}" 
-                               placeholder="correo@ejemplo.com" required>
+                               id="email" name="email" value="{{ old('email', $usuario['email']) }}" required>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted">El email debe ser único en el sistema</small>
                     </div>
                     
                     <div class="col-md-6 mb-3">
@@ -68,49 +66,59 @@
                             Username <span class="text-danger">*</span>
                         </label>
                         <input type="text" class="form-control @error('username') is-invalid @enderror" 
-                               id="username" name="username" value="{{ old('username') }}" 
-                               placeholder="nombre_usuario" required>
+                               id="username" name="username" value="{{ old('username', $usuario['username']) }}" required>
                         @error('username')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted">El username debe ser único en el sistema</small>
                     </div>
                     
-                    <div class="col-md-6 mb-3">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock me-1 text-primary"></i>
-                            Contraseña <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                   id="password" name="password" placeholder="••••••••" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        @error('password')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                        <small class="text-muted">
-                            Mínimo 8 caracteres, debe contener mayúsculas, minúsculas, números y símbolos
-                        </small>
-                        <div class="password-strength mt-2">
-                            <div class="progress" style="height: 5px;">
-                                <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%;"></div>
+                    <div class="col-12 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-key me-2"></i>
+                                    Cambiar Contraseña <small class="text-muted">(Opcional)</small>
+                                </h6>
                             </div>
-                            <small class="text-muted" id="passwordMessage"></small>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="password" class="form-label">
+                                            Nueva Contraseña
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control @error('password') is-invalid @enderror" 
+                                                   id="password" name="password" placeholder="Dejar en blanco para no cambiar">
+                                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                        @error('password')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <small class="text-muted">
+                                            Mínimo 8 caracteres, debe contener mayúsculas, minúsculas, números y símbolos
+                                        </small>
+                                        <div class="password-strength mt-2">
+                                            <div class="progress" style="height: 5px;">
+                                                <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%;"></div>
+                                            </div>
+                                            <small class="text-muted" id="passwordMessage"></small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="password_confirmation" class="form-label">
+                                            Confirmar Nueva Contraseña
+                                        </label>
+                                        <input type="password" class="form-control" 
+                                               id="password_confirmation" name="password_confirmation" 
+                                               placeholder="Confirmar nueva contraseña">
+                                        <small class="text-muted password-match-feedback"></small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="password_confirmation" class="form-label">
-                            <i class="fas fa-lock me-1 text-primary"></i>
-                            Confirmar Contraseña <span class="text-danger">*</span>
-                        </label>
-                        <input type="password" class="form-control" 
-                               id="password_confirmation" name="password_confirmation" 
-                               placeholder="••••••••" required>
-                        <small class="text-muted password-match-feedback"></small>
                     </div>
                     
                     <div class="col-md-4 mb-3">
@@ -120,14 +128,13 @@
                         </label>
                         <select class="form-select @error('rol') is-invalid @enderror" id="rol" name="rol" required>
                             <option value="">Seleccionar rol</option>
-                            <option value="administrador" {{ old('rol') == 'administrador' ? 'selected' : '' }}>Administrador</option>
-                            <option value="vendedor" {{ old('rol') == 'vendedor' ? 'selected' : '' }}>Vendedor</option>
-                            <option value="analista" {{ old('rol') == 'analista' ? 'selected' : '' }}>Analista</option>
+                            <option value="administrador" {{ old('rol', $usuario['rol']) == 'administrador' ? 'selected' : '' }}>Administrador</option>
+                            <option value="vendedor" {{ old('rol', $usuario['rol']) == 'vendedor' ? 'selected' : '' }}>Vendedor</option>
+                            <option value="analista" {{ old('rol', $usuario['rol']) == 'analista' ? 'selected' : '' }}>Analista</option>
                         </select>
                         @error('rol')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted">El rol determinará los permisos del usuario</small>
                     </div>
 
                     <div class="col-md-4 mb-3">
@@ -136,8 +143,8 @@
                             Estado <span class="text-danger">*</span>
                         </label>
                         <select class="form-select @error('estado') is-invalid @enderror" id="estado" name="estado" required>
-                            <option value="activo" {{ old('estado', 'activo') == 'activo' ? 'selected' : '' }}>Activo</option>
-                            <option value="inactivo" {{ old('estado') == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
+                            <option value="activo" {{ old('estado', $usuario['estado']) == 'activo' ? 'selected' : '' }}>Activo</option>
+                            <option value="inactivo" {{ old('estado', $usuario['estado']) == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
                         </select>
                         @error('estado')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -150,8 +157,7 @@
                             Teléfono
                         </label>
                         <input type="text" class="form-control @error('telefono') is-invalid @enderror" 
-                               id="telefono" name="telefono" value="{{ old('telefono') }}" 
-                               placeholder="+502 1234 5678">
+                               id="telefono" name="telefono" value="{{ old('telefono', $usuario['telefono'] ?? '') }}">
                         @error('telefono')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -163,8 +169,7 @@
                             Dirección
                         </label>
                         <textarea class="form-control @error('direccion') is-invalid @enderror" 
-                                  id="direccion" name="direccion" rows="3" 
-                                  placeholder="Ingrese la dirección completa">{{ old('direccion') }}</textarea>
+                                  id="direccion" name="direccion" rows="3">{{ old('direccion', $usuario['direccion'] ?? '') }}</textarea>
                         @error('direccion')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -174,11 +179,14 @@
                 <hr>
 
                 <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ route('usuarios.show', $usuario['id']) }}" class="btn btn-info">
+                        <i class="fas fa-eye me-2"></i>Ver Detalle
+                    </a>
                     <a href="{{ route('usuarios.index') }}" class="btn btn-secondary">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
-                    <button type="submit" class="btn btn-primary" id="btnGuardar">
-                        <i class="fas fa-save me-2"></i>Guardar Usuario
+                    <button type="submit" class="btn btn-warning" id="btnGuardar">
+                        <i class="fas fa-save me-2"></i>Actualizar Usuario
                     </button>
                 </div>
             </form>
@@ -208,6 +216,12 @@ document.getElementById('togglePassword').addEventListener('click', function() {
 // Medidor de fortaleza de contraseña
 document.getElementById('password').addEventListener('input', function() {
     const password = this.value;
+    if (password.length === 0) {
+        document.getElementById('passwordStrength').style.width = '0%';
+        document.getElementById('passwordMessage').textContent = '';
+        return;
+    }
+    
     const strengthBar = document.getElementById('passwordStrength');
     const message = document.getElementById('passwordMessage');
     

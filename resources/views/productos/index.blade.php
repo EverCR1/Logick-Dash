@@ -11,11 +11,10 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Gestión de Productos</h5>
+            <h5 class="card-title mb-0">
+                <i class="fas fa-boxes me-2"></i>Gestión de Productos
+            </h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('productos.buscar') }}" class="btn btn-info">
-                    <i class="fas fa-search me-2"></i> Buscar
-                </a>
                 <a href="{{ route('productos.stock-bajo') }}" class="btn btn-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i> Stock Bajo
                 </a>
@@ -27,10 +26,116 @@
         <div class="card-body">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            <!-- Filtros y búsqueda en tiempo real -->
+            <div class="row mb-4">
+                <div class="col-md-7">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="activo">
+                            Activos
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="inactivo">
+                            Inactivos
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group ms-2" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm filter-stock-btn" data-stock="todos">
+                            Todo stock
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-stock-btn" data-stock="bajo">
+                            Stock bajo
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-stock-btn" data-stock="disponible">
+                            Con stock
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-stock-btn" data-stock="agotado">
+                            Agotado
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Buscar por SKU, nombre, marca, proveedor...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros adicionales -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-tag me-1"></i> Categorías
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="filterCategoriaText" placeholder="Buscar categoría...">
+                                </div>
+                                <div id="categoriaList">
+                                    <!-- Se llenará dinámicamente con JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-building me-1"></i> Proveedores
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="filterProveedorText" placeholder="Buscar proveedor...">
+                                </div>
+                                <div id="proveedorList">
+                                    <!-- Se llenará dinámicamente con JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-sort me-1"></i> Ordenar por
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="nombre_asc">Nombre A-Z</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="nombre_desc">Nombre Z-A</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="precio_asc">Precio menor a mayor</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="precio_desc">Precio mayor a menor</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="stock_asc">Stock menor a mayor</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="stock_desc">Stock mayor a menor</a></li>
+                            </ul>
+                        </div>
+                        
+                        <button class="btn btn-sm btn-info" id="btnLimpiarFiltros" title="Limpiar todos los filtros">
+                            <i class="fas fa-undo me-1"></i> Limpiar filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             @php
                 // Extraer datos de manera segura
@@ -51,6 +156,39 @@
                 if (isset($productos['meta']) && is_array($productos['meta'])) {
                     $productosMeta = $productos['meta'];
                 }
+
+                // Recopilar categorías y proveedores únicos para filtros
+                $categoriasUnicas = [];
+                $proveedoresUnicos = [];
+                foreach ($productosData as $producto) {
+                    if (!empty($producto['categorias'])) {
+                        foreach ($producto['categorias'] as $categoria) {
+                            $categoriaId = $categoria['id'] ?? '';
+                            $categoriaNombre = $categoria['nombre'] ?? '';
+                            if ($categoriaId && $categoriaNombre) {
+                                $categoriasUnicas[$categoriaId] = [
+                                    'id' => $categoriaId,
+                                    'nombre' => $categoriaNombre
+                                ];
+                            }
+                        }
+                    }
+                    
+                    if (!empty($producto['proveedor']['id']) && !empty($producto['proveedor']['nombre'])) {
+                        $proveedoresUnicos[$producto['proveedor']['id']] = [
+                            'id' => $producto['proveedor']['id'],
+                            'nombre' => $producto['proveedor']['nombre']
+                        ];
+                    }
+                }
+                
+                // Ordenar alfabéticamente
+                usort($categoriasUnicas, function($a, $b) {
+                    return strcmp($a['nombre'], $b['nombre']);
+                });
+                usort($proveedoresUnicos, function($a, $b) {
+                    return strcmp($a['nombre'], $b['nombre']);
+                });
             @endphp
 
             @if(empty($productosData))
@@ -64,8 +202,8 @@
                 </div>
             @else
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-striped" id="productosTable">
+                        <thead class="bg-primary text-white">
                             <tr>
                                 <th style="width: 70px;">Imagen</th>
                                 <th>SKU</th>
@@ -85,7 +223,6 @@
                                 $urlImagen = null;
                                 
                                 if(isset($producto['imagenes']) && count($producto['imagenes']) > 0) {
-                                    // Buscar imagen con es_principal = true
                                     foreach($producto['imagenes'] as $imagen) {
                                         if(isset($imagen['es_principal']) && $imagen['es_principal']) {
                                             $imagenPrincipal = $imagen;
@@ -93,12 +230,10 @@
                                         }
                                     }
                                     
-                                    // Si no hay marcada como principal, usar la primera
                                     if(!$imagenPrincipal) {
                                         $imagenPrincipal = $producto['imagenes'][0];
                                     }
                                     
-                                    // Determinar qué URL usar (prioridad: url_thumb -> url_medium -> url)
                                     if(!empty($imagenPrincipal['url_thumb'])) {
                                         $urlImagen = $imagenPrincipal['url_thumb'];
                                     } elseif(!empty($imagenPrincipal['url_medium'])) {
@@ -110,9 +245,39 @@
                                 
                                 $stock = $producto['stock'] ?? 0;
                                 $stockMinimo = $producto['stock_minimo'] ?? 1;
-                                $stockClass = $stock <= $stockMinimo ? 'danger' : ($stock <= $stockMinimo * 2 ? 'warning' : 'success');
+                                $stockClass = $stock <= 0 ? 'secondary' : ($stock <= $stockMinimo ? 'danger' : ($stock <= $stockMinimo * 2 ? 'warning' : 'success'));
+                                $stockEstado = $stock <= 0 ? 'Agotado' : ($stock <= $stockMinimo ? 'Bajo' : 'Normal');
+                                
+                                // Preparar datos para búsqueda
+                                $categoriasTexto = '';
+                                if (!empty($producto['categorias'])) {
+                                    $categoriasTexto = implode(' ', array_column($producto['categorias'], 'nombre'));
+                                }
+                                $proveedorNombre = $producto['proveedor']['nombre'] ?? '';
+                                $searchText = strtolower(
+                                    ($producto['sku'] ?? '') . ' ' . 
+                                    ($producto['nombre'] ?? '') . ' ' . 
+                                    ($producto['marca'] ?? '') . ' ' . 
+                                    ($producto['color'] ?? '') . ' ' . 
+                                    $proveedorNombre . ' ' . 
+                                    $categoriasTexto
+                                );
+                                
+                                // IDs de categorías para filtro
+                                $categoriaIds = [];
+                                if (!empty($producto['categorias'])) {
+                                    $categoriaIds = array_column($producto['categorias'], 'id');
+                                }
                             @endphp
-                            <tr>
+                            <tr data-estado="{{ $producto['estado'] ?? 'activo' }}"
+                                data-stock="{{ $stock }}"
+                                data-stock-minimo="{{ $stockMinimo }}"
+                                data-precio="{{ $producto['precio_venta'] ?? 0 }}"
+                                data-nombre="{{ strtolower($producto['nombre'] ?? '') }}"
+                                data-proveedor-id="{{ $producto['proveedor']['id'] ?? '' }}"
+                                data-proveedor-nombre="{{ strtolower($proveedorNombre) }}"
+                                data-categoria-ids="{{ json_encode($categoriaIds) }}"
+                                data-search="{{ $searchText }}">
                                 <td class="text-center">
                                     @if($urlImagen)
                                         <img src="{{ $urlImagen }}" 
@@ -151,7 +316,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    {{ $producto['proveedor']['nombre'] ?? 'N/A' }}
+                                    {{ $proveedorNombre ?: 'N/A' }}
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column">
@@ -168,25 +333,26 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $stockClass }}">
-                                        {{ $stock }}
+                                        {{ $stock }} unidades
                                     </span>
-                                    <small class="d-block text-muted">Mín: {{ $stockMinimo }}</small>
+                                    <small class="d-block text-muted">{{ $stockEstado }} (Mín: {{ $stockMinimo }})</small>
                                 </td>
                                 <td>
                                     <span class="badge {{ ($producto['estado'] ?? '') == 'activo' ? 'bg-success' : 'bg-danger' }}">
+                                        <i class="fas fa-{{ ($producto['estado'] ?? '') == 'activo' ? 'check-circle' : 'times-circle' }} me-1"></i>
                                         {{ $producto['estado'] ?? 'desconocido' }}
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('productos.show', $producto['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver">
+                                        <a href="{{ route('productos.show', $producto['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver detalles">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="{{ route('productos.edit', $producto['id'] ?? '#') }}" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form action="{{ route('productos.destroy', $producto['id'] ?? '#') }}" method="POST" 
-                                              class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este producto?')">
+                                              class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
@@ -201,7 +367,7 @@
                     </table>
                 </div>
 
-                <!-- Paginación - Solo si hay links -->
+                <!-- Paginación -->
                 @if(!empty($productosLinks) && count($productosLinks) > 0)
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted">
@@ -255,6 +421,321 @@
 
 @push('scripts')
 <script>
+// Datos para filtros
+// Datos para filtros - Usar las categorías transformadas del controlador
+const categorias = @json($categoriasParaFiltros);
+const proveedores = @json($proveedoresParaFiltros);
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    let currentEstadoFilter = 'todos';
+    let currentStockFilter = 'todos';
+    let currentCategoriaFilter = null;
+    let currentProveedorFilter = null;
+    let currentSort = 'nombre_asc';
+    let currentSearch = '';
+    
+    // Inicializar dropdowns de filtros
+    inicializarFiltrosDropdown();
+    
+    // Función para inicializar filtros de dropdown
+    function inicializarFiltrosDropdown() {
+        // Llenar lista de categorías
+        const categoriaList = document.getElementById('categoriaList');
+        if (categoriaList) {
+            let categoriasHtml = '<div class="form-check mb-2">';
+            categoriasHtml += '<input class="form-check-input filter-categoria" type="radio" name="categoriaFilter" id="categoriaTodos" value="" checked>';
+            categoriasHtml += '<label class="form-check-label" for="categoriaTodos">Todas las categorías</label>';
+            categoriasHtml += '</div>';
+            
+            categorias.forEach(cat => {
+                categoriasHtml += '<div class="form-check mb-2">';
+                categoriasHtml += `<input class="form-check-input filter-categoria" type="radio" name="categoriaFilter" id="categoria_${cat.id}" value="${cat.id}">`;
+                categoriasHtml += `<label class="form-check-label" for="categoria_${cat.id}">${cat.nombre}</label>`;
+                categoriasHtml += '</div>';
+            });
+            
+            categoriaList.innerHTML = categoriasHtml;
+        }
+        
+        // Llenar lista de proveedores
+        const proveedorList = document.getElementById('proveedorList');
+        if (proveedorList) {
+            let proveedoresHtml = '<div class="form-check mb-2">';
+            proveedoresHtml += '<input class="form-check-input filter-proveedor" type="radio" name="proveedorFilter" id="proveedorTodos" value="" checked>';
+            proveedoresHtml += '<label class="form-check-label" for="proveedorTodos">Todos los proveedores</label>';
+            proveedoresHtml += '</div>';
+            
+            proveedores.forEach(prov => {
+                proveedoresHtml += '<div class="form-check mb-2">';
+                proveedoresHtml += `<input class="form-check-input filter-proveedor" type="radio" name="proveedorFilter" id="proveedor_${prov.id}" value="${prov.id}">`;
+                proveedoresHtml += `<label class="form-check-label" for="proveedor_${prov.id}">${prov.nombre}</label>`;
+                proveedoresHtml += '</div>';
+            });
+            
+            proveedorList.innerHTML = proveedoresHtml;
+        }
+        
+        // Eventos para filtros de categoría
+        document.querySelectorAll('.filter-categoria').forEach(input => {
+            input.addEventListener('change', function() {
+                currentCategoriaFilter = this.value || null;
+                aplicarFiltros();
+            });
+        });
+        
+        // Eventos para filtros de proveedor
+        document.querySelectorAll('.filter-proveedor').forEach(input => {
+            input.addEventListener('change', function() {
+                currentProveedorFilter = this.value || null;
+                aplicarFiltros();
+            });
+        });
+        
+        // Filtro de texto en dropdowns
+        document.getElementById('filterCategoriaText')?.addEventListener('keyup', function() {
+            const text = this.value.toLowerCase();
+            document.querySelectorAll('#categoriaList .form-check').forEach(item => {
+                const label = item.querySelector('label');
+                if (label) {
+                    const matches = label.textContent.toLowerCase().includes(text);
+                    item.style.display = matches ? '' : 'none';
+                }
+            });
+        });
+        
+        document.getElementById('filterProveedorText')?.addEventListener('keyup', function() {
+            const text = this.value.toLowerCase();
+            document.querySelectorAll('#proveedorList .form-check').forEach(item => {
+                const label = item.querySelector('label');
+                if (label) {
+                    const matches = label.textContent.toLowerCase().includes(text);
+                    item.style.display = matches ? '' : 'none';
+                }
+            });
+        });
+    }
+    
+    // Función para aplicar todos los filtros
+    function aplicarFiltros() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+        currentSearch = searchText;
+        
+        const tbody = document.querySelector('#productosTable tbody');
+        let rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Excluir fila de no resultados si existe
+        rows = rows.filter(row => row.id !== 'no-results-row');
+        
+        let visibleRows = [];
+        
+        rows.forEach(row => {
+            const estado = row.dataset.estado;
+            const stock = parseInt(row.dataset.stock) || 0;
+            const stockMinimo = parseInt(row.dataset.stockMinimo) || 1;
+            const proveedorId = row.dataset.proveedorId;
+            const categoriaIds = JSON.parse(row.dataset.categoriaIds || '[]');
+            const searchData = row.dataset.search || '';
+            
+            // Filtro de estado
+            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
+            
+            // Filtro de stock
+            let stockMatch = true;
+            if (currentStockFilter !== 'todos') {
+                if (currentStockFilter === 'bajo') {
+                    stockMatch = stock > 0 && stock <= stockMinimo;
+                } else if (currentStockFilter === 'disponible') {
+                    stockMatch = stock > 0;
+                } else if (currentStockFilter === 'agotado') {
+                    stockMatch = stock <= 0;
+                }
+            }
+            
+            // Filtro de categoría
+            let categoriaMatch = true;
+            if (currentCategoriaFilter) {
+                categoriaMatch = categoriaIds.includes(parseInt(currentCategoriaFilter));
+            }
+            
+            // Filtro de proveedor
+            let proveedorMatch = true;
+            if (currentProveedorFilter) {
+                proveedorMatch = proveedorId === currentProveedorFilter;
+            }
+            
+            // Filtro de búsqueda
+            const searchMatch = searchText === '' || searchData.includes(searchText);
+            
+            // Mostrar u ocultar fila
+            if (estadoMatch && stockMatch && categoriaMatch && proveedorMatch && searchMatch) {
+                row.style.display = '';
+                visibleRows.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Aplicar ordenamiento
+        visibleRows = ordenarFilas(visibleRows, currentSort);
+        
+        // Reordenar la tabla
+        const allRows = rows.filter(row => visibleRows.includes(row));
+        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
+        
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+        
+        visibleRows.forEach(row => tbody.appendChild(row));
+        hiddenRows.forEach(row => tbody.appendChild(row));
+        
+        // Mostrar mensaje si no hay resultados
+        mostrarMensajeNoResultados(visibleRows.length, rows.length);
+    }
+    
+    // Función para ordenar filas
+    function ordenarFilas(rows, sortType) {
+        return rows.sort((a, b) => {
+            switch(sortType) {
+                case 'nombre_asc':
+                    return (a.dataset.nombre || '').localeCompare(b.dataset.nombre || '');
+                case 'nombre_desc':
+                    return (b.dataset.nombre || '').localeCompare(a.dataset.nombre || '');
+                case 'precio_asc':
+                    return (parseFloat(a.dataset.precio) || 0) - (parseFloat(b.dataset.precio) || 0);
+                case 'precio_desc':
+                    return (parseFloat(b.dataset.precio) || 0) - (parseFloat(a.dataset.precio) || 0);
+                case 'stock_asc':
+                    return (parseInt(a.dataset.stock) || 0) - (parseInt(b.dataset.stock) || 0);
+                case 'stock_desc':
+                    return (parseInt(b.dataset.stock) || 0) - (parseInt(a.dataset.stock) || 0);
+                default:
+                    return 0;
+            }
+        });
+    }
+    
+    // Función para mostrar mensaje cuando no hay resultados
+    function mostrarMensajeNoResultados(visibleCount, totalRows) {
+        const table = document.getElementById('productosTable');
+        const tbody = table.querySelector('tbody');
+        let noResultsRow = document.getElementById('no-results-row');
+        
+        if (visibleCount === 0 && totalRows > 0) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="8" class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No se encontraron productos</h5>
+                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
+                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                            <i class="fas fa-undo me-2"></i>Limpiar filtros
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(noResultsRow);
+            }
+        } else {
+            if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    }
+    
+    // Función para limpiar filtros
+    window.limpiarFiltros = function() {
+        currentEstadoFilter = 'todos';
+        currentStockFilter = 'todos';
+        currentCategoriaFilter = null;
+        currentProveedorFilter = null;
+        currentSort = 'nombre_asc';
+        
+        // Actualizar botones de estado
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Actualizar botones de stock
+        document.querySelectorAll('.filter-stock-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.stock === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Resetear radio buttons
+        document.getElementById('categoriaTodos')?.click();
+        document.getElementById('proveedorTodos')?.click();
+        
+        // Limpiar búsqueda
+        document.getElementById('searchInput').value = '';
+        
+        aplicarFiltros();
+    };
+    
+    // Eventos para filtros de estado
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentEstadoFilter = this.dataset.filter;
+            aplicarFiltros();
+        });
+    });
+    
+    // Eventos para filtros de stock
+    document.querySelectorAll('.filter-stock-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-stock-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentStockFilter = this.dataset.stock;
+            aplicarFiltros();
+        });
+    });
+    
+    // Eventos para ordenamiento
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentSort = this.dataset.sort;
+            aplicarFiltros();
+        });
+    });
+    
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(aplicarFiltros, 300);
+    });
+    
+    // Botón limpiar búsqueda
+    document.getElementById('clearSearch').addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        aplicarFiltros();
+        document.getElementById('searchInput').focus();
+    });
+    
+    // Botón limpiar todos los filtros
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
+    
+    // Inicializar botones activos
+    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
+    document.querySelector('.filter-stock-btn[data-stock="todos"]').classList.add('active');
+    
+    // Agregar tooltips a los botones
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
 // Función para abrir imagen en modal
 function abrirModalImagen(src, titulo) {
     const modalElement = document.getElementById('modalImagen');
@@ -267,18 +748,8 @@ function abrirModalImagen(src, titulo) {
         
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
-    } else {
-        console.error('Elementos del modal no encontrados');
     }
 }
-
-// Agregar tooltips a los botones de acciones
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
 </script>
 @endpush
 
@@ -312,6 +783,57 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.875rem;
 }
 
+/* Estilos para botones de filtro activos */
+.filter-btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.filter-btn[data-filter="activo"].active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.filter-btn[data-filter="inactivo"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.filter-stock-btn.active {
+    background-color: #0dcaf0;
+    color: #000;
+    border-color: #0dcaf0;
+}
+
+.filter-stock-btn[data-stock="bajo"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.filter-stock-btn[data-stock="disponible"].active {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.filter-stock-btn[data-stock="agotado"].active {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+/* Dropdowns de filtros */
+.dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.form-check {
+    padding-left: 1.5rem;
+}
+
 /* Estilos responsivos */
 @media (max-width: 768px) {
     .table-responsive {
@@ -327,6 +849,21 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0.2rem 0.4rem;
         font-size: 0.8rem;
     }
+    
+    .d-flex.flex-wrap {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .dropdown {
+        width: 100%;
+    }
+    
+    .dropdown .btn {
+        width: 100%;
+        text-align: left;
+    }
 }
 </style>
+
 @endpush

@@ -11,7 +11,9 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Gestión de Clientes</h5>
+            <h5 class="card-title mb-0">
+                <i class="fas fa-users me-2"></i>Gestión de Clientes
+            </h5>
             <div class="d-flex gap-2">
                 <a href="{{ route('clientes.estadisticas') }}" class="btn btn-info">
                     <i class="fas fa-chart-bar me-2"></i> Estadísticas
@@ -24,6 +26,7 @@
         <div class="card-body">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -31,40 +34,48 @@
 
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
                     {{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
-            <!-- Filtros de búsqueda -->
-            <form method="GET" action="{{ route('clientes.index') }}" class="mb-4">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <input type="text" class="form-control" name="search" 
-                               placeholder="Buscar por nombre, NIT, email o teléfono" 
-                               value="{{ $search ?? '' }}">
+            <!-- Filtros y búsqueda en tiempo real -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn" data-filter="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="activo">
+                            Activos
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="inactivo">
+                            Inactivos
+                        </button>
                     </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="tipo">
-                            <option value="todos" {{ ($tipo ?? 'todos') == 'todos' ? 'selected' : '' }}>Todos los tipos</option>
-                            <option value="natural" {{ ($tipo ?? '') == 'natural' ? 'selected' : '' }}>Natural</option>
-                            <option value="juridico" {{ ($tipo ?? '') == 'juridico' ? 'selected' : '' }}>Jurídico</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="estado">
-                            <option value="todos" {{ ($estado ?? 'todos') == 'todos' ? 'selected' : '' }}>Todos los estados</option>
-                            <option value="activo" {{ ($estado ?? '') == 'activo' ? 'selected' : '' }}>Activo</option>
-                            <option value="inactivo" {{ ($estado ?? '') == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i> Buscar
+                    
+                    <div class="btn-group ms-2" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm type-filter" data-type="todos">
+                            Todos
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm type-filter" data-type="natural">
+                            Natural
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm type-filter" data-type="juridico">
+                            Jurídico
                         </button>
                     </div>
                 </div>
-            </form>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Buscar por nombre, NIT, email o teléfono..."
+                               value="{{ $search ?? '' }}">
+                    </div>
+                </div>
+            </div>
 
             @php
                 // Extraer datos de manera segura - Mismo patrón que servicios
@@ -98,8 +109,8 @@
                 </div>
             @else
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-striped" id="clientesTable">
+                        <thead class="bg-primary text-white">
                             <tr>
                                 <th>ID</th>
                                 <th>Nombre</th>
@@ -112,7 +123,14 @@
                         </thead>
                         <tbody>
                             @foreach($clientesData as $cliente)
-                            <tr>
+                            <tr data-estado="{{ $cliente['estado'] ?? 'activo' }}" 
+                                data-tipo="{{ $cliente['tipo'] ?? 'natural' }}"
+                                data-search="{{ strtolower(
+                                    ($cliente['nombre'] ?? '') . ' ' . 
+                                    ($cliente['nit'] ?? '') . ' ' . 
+                                    ($cliente['email'] ?? '') . ' ' . 
+                                    ($cliente['telefono'] ?? '')
+                                ) }}">
                                 <td>{{ $cliente['id'] ?? 'N/A' }}</td>
                                 <td>
                                     <strong>{{ $cliente['nombre'] ?? 'N/A' }}</strong>
@@ -130,12 +148,22 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ ($cliente['tipo'] ?? 'natural') == 'natural' ? 'info' : 'warning' }}">
+                                    @php
+                                        $tipoClass = ($cliente['tipo'] ?? 'natural') == 'natural' ? 'bg-info' : 'bg-warning';
+                                        $tipoIcon = ($cliente['tipo'] ?? 'natural') == 'natural' ? 'user' : 'building';
+                                    @endphp
+                                    <span class="badge {{ $tipoClass }}">
+                                        <i class="fas fa-{{ $tipoIcon }} me-1"></i>
                                         {{ ($cliente['tipo'] ?? 'natural') == 'natural' ? 'Natural' : 'Jurídico' }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge {{ ($cliente['estado'] ?? 'activo') == 'activo' ? 'bg-success' : 'bg-secondary' }}">
+                                    @php
+                                        $estadoClass = ($cliente['estado'] ?? 'activo') == 'activo' ? 'bg-success' : 'bg-secondary';
+                                        $estadoIcon = ($cliente['estado'] ?? 'activo') == 'activo' ? 'check-circle' : 'times-circle';
+                                    @endphp
+                                    <span class="badge {{ $estadoClass }}">
+                                        <i class="fas fa-{{ $estadoIcon }} me-1"></i>
                                         {{ $cliente['estado'] ?? 'activo' }}
                                     </span>
                                 </td>
@@ -149,9 +177,28 @@
                                            class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        @if(($cliente['estado'] ?? 'activo') == 'activo')
+                                        <form action="{{ route('clientes.changeStatus', $cliente['id'] ?? '#') }}" 
+                                              method="POST" class="d-inline"
+                                              onsubmit="return confirm('¿Estás seguro de desactivar este cliente?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-secondary" title="Desactivar">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </form>
+                                        @else
+                                        <form action="{{ route('clientes.changeStatus', $cliente['id'] ?? '#') }}" 
+                                              method="POST" class="d-inline"
+                                              onsubmit="return confirm('¿Estás seguro de activar este cliente?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success" title="Activar">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        @endif
                                         <form action="{{ route('clientes.destroy', $cliente['id'] ?? '#') }}" 
                                               method="POST" class="d-inline"
-                                              onsubmit="return confirm('¿Estás seguro de eliminar este cliente?')">
+                                              onsubmit="return confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
@@ -166,7 +213,7 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
+                <!-- Paginación (mantener para navegación) -->
                 @if(!empty($clientesLinks) && count($clientesLinks) > 0)
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted">
@@ -203,24 +250,134 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Variables para filtros
+    let currentEstadoFilter = 'todos';
+    let currentTipoFilter = 'todos';
+    
+    // Función para aplicar todos los filtros
+    function aplicarFiltros() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#clientesTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const estado = row.dataset.estado;
+            const tipo = row.dataset.tipo;
+            const searchData = row.dataset.search || '';
+            
+            // Verificar filtro de estado
+            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
+            
+            // Verificar filtro de tipo
+            const tipoMatch = currentTipoFilter === 'todos' || tipo === currentTipoFilter;
+            
+            // Verificar búsqueda
+            const searchMatch = searchText === '' || searchData.includes(searchText);
+            
+            // Mostrar u ocultar fila
+            if (estadoMatch && tipoMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Mostrar mensaje si no hay resultados
+        mostrarMensajeNoResultados(visibleCount);
+    }
+    
+    // Función para mostrar mensaje cuando no hay resultados
+    function mostrarMensajeNoResultados(visibleCount) {
+        const table = document.getElementById('clientesTable');
+        let noResultsRow = document.getElementById('no-results-row');
+        
+        if (visibleCount === 0) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="7" class="text-center py-4">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No se encontraron clientes con los filtros aplicados</p>
+                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                            <i class="fas fa-undo me-2"></i>Limpiar filtros
+                        </button>
+                    </td>
+                `;
+                table.querySelector('tbody').appendChild(noResultsRow);
+            }
+        } else {
+            if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    }
+    
+    // Función para limpiar filtros
+    window.limpiarFiltros = function() {
+        // Resetear filtros
+        currentEstadoFilter = 'todos';
+        currentTipoFilter = 'todos';
+        
+        // Actualizar botones de estado
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Actualizar botones de tipo
+        document.querySelectorAll('.type-filter').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.type === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Limpiar búsqueda
+        document.getElementById('searchInput').value = '';
+        
+        // Aplicar filtros
+        aplicarFiltros();
+    };
+    
+    // Filtrado por estado
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentEstadoFilter = this.dataset.filter;
+            aplicarFiltros();
+        });
+    });
+    
+    // Filtrado por tipo
+    document.querySelectorAll('.type-filter').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.type-filter').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTipoFilter = this.dataset.type;
+            aplicarFiltros();
+        });
+    });
+    
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(aplicarFiltros, 300); // Debounce de 300ms
+    });
+    
+    // Inicializar botones activos
+    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
+    document.querySelector('.type-filter[data-type="todos"]').classList.add('active');
+    
     // Agregar tooltips a los botones
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Confirmación antes de cambiar estado
-    const statusForms = document.querySelectorAll('form[action*="cambiar-estado"]');
-    statusForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const button = this.querySelector('button[type="submit"]');
-            const estadoActual = button.textContent.trim();
-            const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
-            
-            if (!confirm(`¿Cambiar estado del cliente de "${estadoActual}" a "${nuevoEstado}"?`)) {
-                e.preventDefault();
-            }
-        });
     });
 });
 </script>
@@ -234,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .badge {
     font-size: 0.85em;
+    padding: 0.5em 0.75em;
 }
 
 .btn-group .btn {
@@ -241,9 +399,33 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.875rem;
 }
 
-/* Estilos para botones de estado */
-.btn-status {
-    min-width: 80px;
+/* Estilos para botones de filtro activos */
+.filter-btn.active, .type-filter.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.filter-btn[data-filter="activo"].active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.filter-btn[data-filter="inactivo"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.type-filter[data-type="natural"].active {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #000;
+}
+
+.type-filter[data-type="juridico"].active {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
 }
 
 /* Estilos responsivos */
@@ -257,14 +439,22 @@ document.addEventListener('DOMContentLoaded', function() {
         font-size: 0.8rem;
     }
     
-    .d-flex.gap-2 {
-        flex-wrap: wrap;
-        gap: 0.5rem !important;
+    .row.mb-4 {
+        flex-direction: column;
     }
     
-    .btn {
-        padding: 0.375rem 0.75rem;
-        font-size: 0.875rem;
+    .col-md-6 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+        margin-bottom: 0.25rem;
+    }
+    
+    .ms-2 {
+        margin-left: 0 !important;
+        margin-top: 0.25rem;
     }
 }
 </style>

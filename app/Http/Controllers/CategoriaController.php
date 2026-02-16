@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ApiService;
+use Illuminate\Support\Facades\Log;
 
 class CategoriaController extends Controller
 {
@@ -20,20 +21,93 @@ class CategoriaController extends Controller
         
         if ($response->successful()) {
             $categorias = $response->json()['categorias'] ?? [];
+            
+            // Agregar conteo de productos a cada categoría (opcional - requeriría endpoint adicional)
+            // Esto se puede hacer si tienes un endpoint que devuelva el conteo
         } else {
             $categorias = [];
+            
+            Log::error('Error al obtener categorías:', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
         }
 
-        return view('categorias.index', compact('categorias'));
+        return view('categorias.index', [
+            'categorias' => $categorias,
+            'userRole' => auth()->user()->rol ?? 'vendedor'
+        ]);
+    }
+
+    /**
+     * Mostrar los detalles de una categoría específica
+     */
+    public function show($id)
+    {
+        // Obtener la categoría con sus relaciones
+        $response = $this->apiService->get("categorias/{$id}");
+        
+        if (!$response->successful()) {
+            Log::error('Error al obtener categoría:', [
+                'id' => $id,
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+            
+            return redirect()->route('categorias.index')
+                ->with('error', 'Categoría no encontrada');
+        }
+
+        $data = $response->json();
+        $categoria = $data['categoria'] ?? null;
+        
+        if (!$categoria) {
+            return redirect()->route('categorias.index')
+                ->with('error', 'Categoría no encontrada en la respuesta');
+        }
+
+        // Opcional: Obtener productos de esta categoría
+        // Esto requeriría un endpoint adicional en la API
+        // Por ahora, podemos intentar obtenerlos si el endpoint existe
+        $productosResponse = $this->apiService->get('productos/search', [
+            'categoria_id' => $id,
+            'limit' => 10
+        ]);
+        
+        if ($productosResponse->successful()) {
+            $productosData = $productosResponse->json();
+            $categoria['productos'] = $productosData['productos']['data'] ?? [];
+            $categoria['productos_count'] = $productosData['productos']['total'] ?? count($categoria['productos']);
+        } else {
+            $categoria['productos'] = [];
+            $categoria['productos_count'] = 0;
+        }
+
+        // Obtener el rol del usuario para permisos
+        $userRole = auth()->user()->rol ?? 'vendedor';
+
+        return view('categorias.show', compact('categoria', 'userRole'));
     }
 
     public function create()
     {
         // Obtener categorías para el select
         $response = $this->apiService->get('categorias-flat');
-        $categoriasPadre = $response->successful() ? $response->json()['categorias'] ?? [] : [];
+        
+        if ($response->successful()) {
+            $categoriasPadre = $response->json()['categorias'] ?? [];
+        } else {
+            $categoriasPadre = [];
+            
+            Log::error('Error al obtener categorías para select:', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+        }
 
-        return view('categorias.create', compact('categoriasPadre'));
+        return view('categorias.create', [
+            'categoriasPadre' => $categoriasPadre
+        ]);
     }
 
     public function store(Request $request)
@@ -41,7 +115,7 @@ class CategoriaController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:100',
             'descripcion' => 'nullable|string',
-            'parent_id' => 'nullable|exists:categorias,id',
+            'parent_id' => 'nullable',
         ]);
 
         $response = $this->apiService->post('categorias', $request->all());
@@ -51,8 +125,16 @@ class CategoriaController extends Controller
                 ->with('success', 'Categoría creada exitosamente');
         }
 
-        return back()->withErrors($response->json()['errors'] ?? ['Error al crear categoría'])
-                    ->withInput();
+        $errors = $response->json()['errors'] ?? ['Error al crear categoría'];
+        $message = $response->json()['message'] ?? 'Error desconocido';
+        
+        Log::error('Error al crear categoría:', [
+            'status' => $response->status(),
+            'errors' => $errors,
+            'message' => $message
+        ]);
+
+        return back()->withErrors($errors)->withInput();
     }
 
     public function edit($id)
@@ -67,11 +149,14 @@ class CategoriaController extends Controller
 
         $categoria = $response->json()['categoria'] ?? null;
         
-        // Obtener categorías para el select (excluyendo la actual y sus descendientes)
-        $response = $this->apiService->get('categorias-flat');
-        $categoriasPadre = $response->successful() ? $response->json()['categorias'] ?? [] : [];
+        // Obtener categorías para el select
+        $responsePadre = $this->apiService->get('categorias-flat');
+        $categoriasPadre = $responsePadre->successful() ? $responsePadre->json()['categorias'] ?? [] : [];
 
-        return view('categorias.edit', compact('categoria', 'categoriasPadre'));
+        return view('categorias.edit', [
+            'categoria' => $categoria,
+            'categoriasPadre' => $categoriasPadre
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -79,7 +164,8 @@ class CategoriaController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:100',
             'descripcion' => 'nullable|string',
-            'parent_id' => 'nullable|exists:categorias,id',
+            'parent_id' => 'nullable',
+            'estado' => 'required|in:activo,inactivo',
         ]);
 
         $response = $this->apiService->put("categorias/{$id}", $request->all());
@@ -89,8 +175,16 @@ class CategoriaController extends Controller
                 ->with('success', 'Categoría actualizada exitosamente');
         }
 
-        return back()->withErrors($response->json()['errors'] ?? ['Error al actualizar categoría'])
-                    ->withInput();
+        $errors = $response->json()['errors'] ?? ['Error al actualizar categoría'];
+        $message = $response->json()['message'] ?? 'Error desconocido';
+        
+        Log::error('Error al actualizar categoría:', [
+            'status' => $response->status(),
+            'errors' => $errors,
+            'message' => $message
+        ]);
+
+        return back()->withErrors($errors)->withInput();
     }
 
     public function destroy($id)
@@ -102,7 +196,14 @@ class CategoriaController extends Controller
                 ->with('success', 'Categoría eliminada exitosamente');
         }
 
+        $message = $response->json()['message'] ?? 'Error al eliminar categoría';
+        
+        Log::error('Error al eliminar categoría:', [
+            'status' => $response->status(),
+            'message' => $message
+        ]);
+
         return redirect()->route('categorias.index')
-            ->with('error', 'Error al eliminar categoría');
+            ->with('error', $message);
     }
 }
