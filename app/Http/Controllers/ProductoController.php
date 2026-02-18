@@ -14,13 +14,37 @@ class ProductoController extends Controller
         $this->apiService = $apiService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        // Obtener productos
-        $response = $this->apiService->get('productos');
+        $page = $request->get('page', 1);
+        
+        // Obtener productos con paginación
+        $response = $this->apiService->get('productos', [
+            'page' => $page
+        ]);
         
         if ($response->successful()) {
             $productos = $response->json()['productos'] ?? [];
+            
+            // Transformar los links de paginación
+            if (isset($productos['links'])) {
+                $productos['links'] = $this->transformPaginationLinks($productos['links'], $request->path());
+            }
+            
+            // Transformar las URLs en los links de paginación
+            if (isset($productos['links'])) {
+                foreach ($productos['links'] as &$link) {
+                    if (isset($link['url']) && $link['url']) {
+                        $parsedUrl = parse_url($link['url']);
+                        parse_str($parsedUrl['query'] ?? '', $queryParams);
+                        $page = $queryParams['page'] ?? null;
+                        
+                        if ($page) {
+                            $link['url'] = route('productos.index', ['page' => $page]);
+                        }
+                    }
+                }
+            }
         } else {
             $productos = [
                 'data' => [],
@@ -37,27 +61,24 @@ class ProductoController extends Controller
         $categoriasParaFiltros = [];
         if (!empty($categoriasFiltro)) {
             foreach ($categoriasFiltro as $id => $nombre) {
-                // Limpiar el nombre eliminando los guiones para mostrar
                 $nombreLimpio = preg_replace('/^[\s\-]+/', '', $nombre);
                 
                 $categoriasParaFiltros[] = [
                     'id' => $id,
                     'nombre' => $nombreLimpio,
-                    'nombre_original' => $nombre // Mantener el original si necesitas mostrar la jerarquía
+                    'nombre_original' => $nombre
                 ];
             }
             
-            // Ordenar alfabéticamente por nombre limpio
             usort($categoriasParaFiltros, function($a, $b) {
                 return strcmp($a['nombre'], $b['nombre']);
             });
         }
         
-        // Obtener proveedores para filtros (ya vienen en formato correcto)
+        // Obtener proveedores para filtros
         $proveedoresResponse = $this->apiService->get('proveedores');
         $proveedoresFiltro = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
         
-        // Transformar proveedores al formato necesario para los filtros
         $proveedoresParaFiltros = [];
         if (!empty($proveedoresFiltro)) {
             foreach ($proveedoresFiltro as $proveedor) {
@@ -70,13 +91,35 @@ class ProductoController extends Controller
                 ];
             }
             
-            // Ordenar proveedores alfabéticamente
             usort($proveedoresParaFiltros, function($a, $b) {
                 return strcmp($a['nombre'], $b['nombre']);
             });
         }
 
         return view('productos.index', compact('productos', 'categoriasParaFiltros', 'proveedoresParaFiltros'));
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     public function create()

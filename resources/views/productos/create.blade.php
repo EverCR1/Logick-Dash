@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Crear Producto - LOGICK')
+@section('title', 'Crear Producto')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -215,19 +215,51 @@
                                     @enderror
                                 </div>
                                 
+                                <!-- Categorías con checkboxes -->
                                 <div class="mb-3">
-                                    <label for="categorias" class="form-label">Categorías *</label>
-                                    <select class="form-select @error('categorias') is-invalid @enderror" 
-                                            id="categorias" name="categorias[]" multiple required>
+                                    <label class="form-label">Categorías *</label>
+                                    <div class="border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
+                                        @php
+                                            $oldCategorias = old('categorias', []);
+                                        @endphp
+                                        
                                         @foreach($categorias as $id => $nombre)
-                                            <option value="{{ $id }}" {{ in_array($id, old('categorias', [])) ? 'selected' : '' }}>
-                                                {{ $nombre }}
-                                            </option>
+                                            @php
+                                                $nivel = substr_count($nombre, '-');
+                                                $nombreLimpio = preg_replace('/^[\s\-]+/', '', $nombre);
+                                            @endphp
+                                            <div class="form-check mb-2" style="margin-left: {{ $nivel * 20 }}px;">
+                                                <input class="form-check-input categoria-checkbox" 
+                                                       type="checkbox" 
+                                                       name="categorias[]" 
+                                                       value="{{ $id }}" 
+                                                       id="categoria_{{ $id }}"
+                                                       {{ in_array($id, $oldCategorias) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="categoria_{{ $id }}">
+                                                    {{ $nombreLimpio }}
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </select>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <span id="categorias-seleccionadas">0</span> categorías seleccionadas
+                                    </div>
                                     @error('categorias')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="text-danger mt-1">{{ $message }}</div>
                                     @enderror
+                                    <div class="invalid-feedback d-none" id="categorias-error">
+                                        Debes seleccionar al menos una categoría
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones rápidos para categorías -->
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllCategorias">
+                                        <i class="fas fa-check-double me-1"></i>Seleccionar Todas
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllCategorias">
+                                        <i class="fas fa-times me-1"></i>Deseleccionar Todas
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -308,63 +340,75 @@
         border-bottom: 1px solid rgba(0,0,0,.125);
     }
     
-    select[multiple] {
-        height: 150px;
+    .form-check {
+        transition: background-color 0.2s;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    
+    .form-check:hover {
+        background-color: #e9ecef;
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .border.rounded {
+        border-color: #dee2e6 !important;
     }
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Calcular margen automáticamente
-        const precioCompra = document.getElementById('precio_compra');
-        const precioVenta = document.getElementById('precio_venta');
-        
-        function calcularMargen() {
-            const compra = parseFloat(precioCompra.value) || 0;
-            const venta = parseFloat(precioVenta.value) || 0;
-            
-            if (compra > 0 && venta > 0) {
-                const margen = ((venta - compra) / compra) * 100;
-                const margenElement = document.getElementById('margen');
-                if (margenElement) {
-                    margenElement.textContent = margen.toFixed(2) + '%';
-                    margenElement.className = 'badge ' + (margen >= 30 ? 'bg-success' : margen >= 15 ? 'bg-warning' : 'bg-danger');
-                }
-            }
-        }
-        
-        if (precioCompra && precioVenta) {
-            precioCompra.addEventListener('input', calcularMargen);
-            precioVenta.addEventListener('input', calcularMargen);
-            
-            // Crear elemento para mostrar margen
-            const margenDiv = document.createElement('div');
-            margenDiv.className = 'mt-2';
-            margenDiv.innerHTML = `
-                <small class="text-muted">Margen estimado:</small>
-                <span id="margen" class="badge bg-secondary ms-2">0%</span>
-            `;
-            precioVenta.parentNode.appendChild(margenDiv);
-            
-            calcularMargen();
-        }
-        
-        // Validación de precios
-        const form = document.getElementById('productoForm');
-        form.addEventListener('submit', function(e) {
-            const compra = parseFloat(precioCompra.value) || 0;
-            const venta = parseFloat(precioVenta.value) || 0;
-            
-            if (venta < compra) {
-                e.preventDefault();
-                alert('El precio de venta no puede ser menor que el precio de compra');
-                precioVenta.focus();
-            }
-        });
-    });
-</script>
-<script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Calcular margen automáticamente
+    const precioCompra = document.getElementById('precio_compra');
+    const precioVenta = document.getElementById('precio_venta');
+    
+    function calcularMargen() {
+        const compra = parseFloat(precioCompra.value) || 0;
+        const venta = parseFloat(precioVenta.value) || 0;
+        
+        if (compra > 0 && venta > 0) {
+            const margen = ((venta - compra) / compra) * 100;
+            const margenElement = document.getElementById('margen');
+            if (margenElement) {
+                margenElement.textContent = margen.toFixed(2) + '%';
+                margenElement.className = 'badge ' + (margen >= 30 ? 'bg-success' : margen >= 15 ? 'bg-warning' : 'bg-danger');
+            }
+        }
+    }
+    
+    if (precioCompra && precioVenta) {
+        precioCompra.addEventListener('input', calcularMargen);
+        precioVenta.addEventListener('input', calcularMargen);
+        
+        // Crear elemento para mostrar margen
+        const margenDiv = document.createElement('div');
+        margenDiv.className = 'mt-2';
+        margenDiv.innerHTML = `
+            <small class="text-muted">Margen estimado:</small>
+            <span id="margen" class="badge bg-secondary ms-2">0%</span>
+        `;
+        precioVenta.parentNode.appendChild(margenDiv);
+        
+        calcularMargen();
+    }
+    
+    // Validación de precios
+    const form = document.getElementById('productoForm');
+    form.addEventListener('submit', function(e) {
+        const compra = parseFloat(precioCompra.value) || 0;
+        const venta = parseFloat(precioVenta.value) || 0;
+        
+        if (venta < compra) {
+            e.preventDefault();
+            alert('El precio de venta no puede ser menor que el precio de compra');
+            precioVenta.focus();
+        }
+    });
+    
     // Vista previa de imágenes seleccionadas
     document.getElementById('imagenes').addEventListener('change', function(e) {
         const previewContainer = document.getElementById('imagenes-preview');
@@ -403,6 +447,77 @@ document.addEventListener('DOMContentLoaded', function() {
             previewContainer.innerHTML += '</div>';
         }
     });
+
+    // Funcionalidad para checkboxes de categorías
+    const checkboxes = document.querySelectorAll('.categoria-checkbox');
+    const selectAllBtn = document.getElementById('selectAllCategorias');
+    const deselectAllBtn = document.getElementById('deselectAllCategorias');
+    const categoriasSeleccionadasSpan = document.getElementById('categorias-seleccionadas');
+    const categoriasError = document.getElementById('categorias-error');
+    
+    function actualizarContador() {
+        const seleccionadas = document.querySelectorAll('.categoria-checkbox:checked').length;
+        categoriasSeleccionadasSpan.textContent = seleccionadas;
+        
+        // Remover error si hay seleccionadas
+        if (seleccionadas > 0) {
+            categoriasError.classList.add('d-none');
+        }
+    }
+    
+    // Agregar evento a cada checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarContador);
+    });
+    
+    // Seleccionar todas
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            actualizarContador();
+        });
+    }
+    
+    // Deseleccionar todas
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            actualizarContador();
+        });
+    }
+    
+    // Validación antes de enviar el formulario
+    form.addEventListener('submit', function(e) {
+        const seleccionadas = document.querySelectorAll('.categoria-checkbox:checked').length;
+        
+        if (seleccionadas === 0) {
+            e.preventDefault();
+            categoriasError.classList.remove('d-none');
+            
+            // Hacer scroll al área de categorías
+            document.querySelector('.border.rounded').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+            
+            // Resaltar el área
+            const categoriasArea = document.querySelector('.border.rounded');
+            categoriasArea.style.borderColor = '#dc3545';
+            categoriasArea.style.borderWidth = '2px';
+            
+            setTimeout(() => {
+                categoriasArea.style.borderColor = '#dee2e6';
+                categoriasArea.style.borderWidth = '1px';
+            }, 3000);
+        }
+    });
+    
+    // Inicializar contador
+    actualizarContador();
 });
 </script>
 @endsection

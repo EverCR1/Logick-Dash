@@ -17,12 +17,36 @@ class ServicioController extends Controller
     /**
      * Mostrar lista de servicios
      */
-    public function index()
+    public function index(Request $request)
     {
-        $response = $this->apiService->get('servicios');
+        $page = $request->get('page', 1);
+        
+        $response = $this->apiService->get('servicios', [
+            'page' => $page
+        ]);
         
         if ($response->successful()) {
             $servicios = $response->json()['servicios'] ?? [];
+            
+            // Transformar los links de paginación
+            if (isset($servicios['links'])) {
+                $servicios['links'] = $this->transformPaginationLinks($servicios['links'], $request->path());
+            }
+            
+            // Transformar las URLs en los links de paginación
+            if (isset($servicios['links'])) {
+                foreach ($servicios['links'] as &$link) {
+                    if (isset($link['url']) && $link['url']) {
+                        $parsedUrl = parse_url($link['url']);
+                        parse_str($parsedUrl['query'] ?? '', $queryParams);
+                        $page = $queryParams['page'] ?? null;
+                        
+                        if ($page) {
+                            $link['url'] = route('servicios.index', ['page' => $page]);
+                        }
+                    }
+                }
+            }
         } else {
             $servicios = [
                 'data' => [],
@@ -32,6 +56,29 @@ class ServicioController extends Controller
         }
 
         return view('servicios.index', compact('servicios'));
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     /**

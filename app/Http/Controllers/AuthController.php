@@ -71,4 +71,76 @@ class AuthController extends Controller
         
         return redirect()->route('login')->with('success', 'Sesión cerrada exitosamente');
     }
+
+    /**
+     * Cambiar contraseña
+     */
+    public function cambiarPassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:8|confirmed',
+                'new_password_confirmation' => 'required|string'
+            ]);
+
+            // Llamar a la API para cambiar contraseña
+            $response = $this->apiService->post('change-password', [
+                'current_password' => $request->current_password,
+                'new_password' => $request->new_password,
+                'new_password_confirmation' => $request->new_password_confirmation
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Si la API indica que debemos cerrar sesión
+                if (isset($data['message']) && str_contains($data['message'], 'Inicia sesión nuevamente')) {
+                    // Limpiar sesión actual
+                    $request->session()->forget(['api_token', 'user']);
+                    $request->session()->regenerate();
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => $data['message'],
+                        'redirect' => route('login')
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => $data['message'] ?? 'Contraseña cambiada exitosamente'
+                ]);
+            }
+
+            // Si hay error en la API
+            $errorData = $response->json();
+            $errorMessage = $errorData['message'] ?? 'Error al cambiar la contraseña';
+            
+            if (isset($errorData['errors'])) {
+                $firstError = collect($errorData['errors'])->flatten()->first();
+                $errorMessage = $firstError ?? $errorMessage;
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage
+            ], 422);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('Error cambiando contraseña: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar la contraseña. Intenta de nuevo.'
+            ], 500);
+        }
+    }
 }

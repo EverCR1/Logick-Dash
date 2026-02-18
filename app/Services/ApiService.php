@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\Pool;
 
 class ApiService
 {
@@ -276,4 +277,5 @@ class ApiService
     {
         return Session::get('api_token');
     }
+
 }

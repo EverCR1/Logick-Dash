@@ -26,9 +26,11 @@ class VentaController extends Controller
             $tipo = $request->get('tipo', 'todos');
             $fecha_inicio = $request->get('fecha_inicio');
             $fecha_fin = $request->get('fecha_fin');
+            $page = $request->get('page', 1);
             
-            // Llamar a la API con filtros
+            // Llamar a la API con filtros y paginación
             $response = $this->apiService->get('ventas', [
+                'page' => $page,
                 'query' => $search,
                 'estado' => $estado,
                 'tipo' => $tipo,
@@ -41,6 +43,40 @@ class VentaController extends Controller
                 
                 $ventas = $data['ventas'] ?? [];
                 $estadisticas = $data['estadisticas'] ?? [];
+                
+                // Transformar los links de paginación
+                if (isset($ventas['links'])) {
+                    $ventas['links'] = $this->transformPaginationLinks($ventas['links'], $request->path());
+                }
+                
+                // Transformar las URLs en los links de paginación
+                if (isset($ventas['links'])) {
+                    foreach ($ventas['links'] as &$link) {
+                        if (isset($link['url']) && $link['url']) {
+                            $parsedUrl = parse_url($link['url']);
+                            parse_str($parsedUrl['query'] ?? '', $queryParams);
+                            $page = $queryParams['page'] ?? null;
+                            
+                            if ($page) {
+                                // Mantener todos los filtros actuales
+                                $filtros = [
+                                    'page' => $page,
+                                    'search' => $search,
+                                    'estado' => $estado,
+                                    'tipo' => $tipo,
+                                    'fecha_inicio' => $fecha_inicio,
+                                    'fecha_fin' => $fecha_fin
+                                ];
+                                // Eliminar filtros vacíos
+                                $filtros = array_filter($filtros, function($value) {
+                                    return $value !== '' && $value !== null && $value !== 'todos';
+                                });
+                                
+                                $link['url'] = route('ventas.index', $filtros);
+                            }
+                        }
+                    }
+                }
             } else {
                 $ventas = [
                     'data' => [],
@@ -60,9 +96,34 @@ class VentaController extends Controller
                 'estadisticas' => [],
                 'search' => '',
                 'estado' => 'todos',
-                'tipo' => 'todos'
+                'tipo' => 'todos',
+                'fecha_inicio' => null,
+                'fecha_fin' => null
             ])->with('error', 'Error al cargar las ventas');
         }
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     /**

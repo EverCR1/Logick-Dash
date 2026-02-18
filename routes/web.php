@@ -11,6 +11,8 @@ use App\Http\Controllers\ServicioController;
 use App\Http\Controllers\CreditoController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\VentaController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\AuditoriaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,9 +35,11 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::middleware(['web.auth'])->group(function () {
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/cambiar-password', [AuthController::class, 'cambiarPassword'])->name('cambiar-password');
     
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/refresh-stats', [DashboardController::class, 'refreshStats'])->name('dashboard.refresh');
     
     // Usuarios (solo administrador)
     Route::middleware(['role:administrador'])->prefix('usuarios')->group(function () {
@@ -156,4 +160,26 @@ Route::middleware(['web.auth'])->group(function () {
         Route::get('/buscar/servicios-ajax', [VentaController::class, 'buscarServicios'])->name('ventas.buscar.servicios.ajax');
         Route::get('/buscar/clientes-ajax', [VentaController::class, 'buscarClientes'])->name('ventas.buscar.clientes.ajax');
     });
+
+    // Reportes (solo administrador)
+    Route::middleware(['web.auth', 'role:administrador'])->prefix('reportes')->name('reportes.')->group(function () {
+        Route::get('/', [ReporteController::class, 'index'])->name('index');
+        Route::get('/resumen', [ReporteController::class, 'resumen'])->name('resumen');
+        Route::get('/ventas', [ReporteController::class, 'ventas'])->name('ventas');
+        Route::get('/productos-mas-vendidos', [ReporteController::class, 'productosMasVendidos'])->name('productos-mas-vendidos');
+        Route::get('/inventario', [ReporteController::class, 'inventario'])->name('inventario');
+        Route::get('/top-clientes', [ReporteController::class, 'topClientes'])->name('top-clientes');
+        Route::get('/rendimiento-vendedores', [ReporteController::class, 'rendimientoVendedores'])->name('rendimiento-vendedores');
+        Route::get('/ventas-30-dias', [ReporteController::class, 'ventas30Dias'])->name('ventas-30-dias');
+        
+    });
+
+    // Auditoría (solo administrador)
+    Route::middleware(['web.auth', 'role:administrador'])->prefix('auditoria')->group(function () {
+        Route::get('/', [AuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::get('/estadisticas', [AuditoriaController::class, 'estadisticas'])->name('auditoria.estadisticas');
+        Route::get('/{id}', [AuditoriaController::class, 'show'])->name('auditoria.show');
+    });
+
+
 });

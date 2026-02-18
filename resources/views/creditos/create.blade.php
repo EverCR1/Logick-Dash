@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Crear Crédito - LOGICK')
+@section('title', 'Crear Crédito')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -81,19 +81,24 @@
                                 @enderror
                             </div>
 
-                            <!-- Capital Restante -->
+                            <!-- Capital Restante (Solo lectura) -->
                             <div class="col-md-6 mb-3">
                                 <label for="capital_restante" class="form-label">
                                     Capital Restante (Q) <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
                                     <span class="input-group-text">Q</span>
-                                    <input type="number" step="0.01" min="0" 
+                                    <input type="number" step="0.01" 
                                            class="form-control @error('capital_restante') is-invalid @enderror" 
                                            id="capital_restante" name="capital_restante" 
-                                           value="{{ old('capital_restante') }}" required>
+                                           value="{{ old('capital_restante') }}" 
+                                           readonly 
+                                           style="background-color: #e9ecef; cursor: not-allowed;">
                                 </div>
-                                <small class="form-text text-muted">Lo que el cliente aún debe</small>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Se sincroniza automáticamente con el capital total
+                                </small>
                                 @error('capital_restante')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -101,12 +106,19 @@
                         </div>
 
                         <!-- Información calculada -->
-                        <div class="alert alert-info mb-3" id="infoCalculada" style="display: none;">
-                            <div class="d-flex justify-content-between">
-                                <span>Porcentaje pagado:</span>
-                                <strong id="porcentajePagado">0%</strong>
+                        <div class="alert alert-info mb-3" id="infoCalculada">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Estado del crédito:</span>
+                                <span class="badge bg-success" id="estadoCredito">Nuevo</span>
                             </div>
-                            <small class="text-muted" id="detallePago">Capital restante no puede ser mayor al capital total</small>
+                            <div class="d-flex justify-content-between mt-2">
+                                <span>Capital restante:</span>
+                                <strong id="capitalRestanteDisplay">Q 0.00</strong>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Al crear un crédito, el capital restante es igual al capital total.
+                            </small>
                         </div>
 
                         <!-- Botones -->
@@ -114,7 +126,7 @@
                             <a href="{{ route('creditos.index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="btnSubmit">
                                 <i class="fas fa-save me-2"></i>Guardar Crédito
                             </button>
                         </div>
@@ -132,90 +144,101 @@ document.addEventListener('DOMContentLoaded', function() {
     const capitalInput = document.getElementById('capital');
     const capitalRestanteInput = document.getElementById('capital_restante');
     const infoDiv = document.getElementById('infoCalculada');
-    const porcentajeSpan = document.getElementById('porcentajePagado');
-    const detalleSpan = document.getElementById('detallePago');
+    const capitalRestanteDisplay = document.getElementById('capitalRestanteDisplay');
+    const estadoCredito = document.getElementById('estadoCredito');
+    const btnSubmit = document.getElementById('btnSubmit');
     
-    function calcularInformacion() {
+    // Función para actualizar el capital restante y la información
+    function actualizarCapitalRestante() {
         const capital = parseFloat(capitalInput.value) || 0;
-        const capitalRestante = parseFloat(capitalRestanteInput.value) || 0;
         
+        // Actualizar capital restante (siempre igual al capital)
+        capitalRestanteInput.value = capital.toFixed(2);
+        
+        // Actualizar display
+        capitalRestanteDisplay.textContent = `Q ${capital.toFixed(2)}`;
+        
+        // Actualizar estado
         if (capital > 0) {
-            const pagado = capital - capitalRestante;
-            const porcentaje = capitalRestante > 0 ? ((pagado / capital) * 100) : 100;
-            
-            // Determinar clase CSS
-            let claseColor = 'info';
-            if (porcentaje >= 100) claseColor = 'success';
-            else if (porcentaje >= 50) claseColor = 'info';
-            else if (porcentaje > 0) claseColor = 'warning';
-            else claseColor = 'danger';
-            
-            // Actualizar UI
-            porcentajeSpan.textContent = porcentaje.toFixed(1) + '%';
-            infoDiv.className = `alert alert-${claseColor} mb-3`;
-            
-            // Detalle
-            let detalle = `Pagado: Q${pagado.toFixed(2)} | Restante: Q${capitalRestante.toFixed(2)}`;
-            if (capitalRestante > capital) {
-                detalle = '⚠️ El capital restante no puede ser mayor al capital total';
-            }
-            
-            detalleSpan.textContent = detalle;
-            infoDiv.style.display = 'block';
+            estadoCredito.textContent = 'Nuevo Crédito';
+            estadoCredito.className = 'badge bg-success';
+            infoDiv.className = 'alert alert-success mb-3';
         } else {
-            infoDiv.style.display = 'none';
+            estadoCredito.textContent = 'Sin Definir';
+            estadoCredito.className = 'badge bg-secondary';
+            infoDiv.className = 'alert alert-secondary mb-3';
         }
     }
     
-    // Escuchar cambios en los inputs
-    [capitalInput, capitalRestanteInput].forEach(input => {
-        input.addEventListener('input', calcularInformacion);
-    });
-    
-    // Calcular al cargar
-    setTimeout(calcularInformacion, 100);
+    // Escuchar cambios en el capital
+    capitalInput.addEventListener('input', actualizarCapitalRestante);
     
     // Validación de formulario
     const form = document.getElementById('creditoForm');
     if (form) {
         form.addEventListener('submit', function(e) {
             const capital = parseFloat(capitalInput.value) || 0;
-            const capitalRestante = parseFloat(capitalRestanteInput.value) || 0;
-            
-            // Validar que capital restante no sea mayor que capital
-            if (capitalRestante > capital) {
-                e.preventDefault();
-                alert('El capital restante no puede ser mayor al capital total.');
-                capitalRestanteInput.focus();
-                return;
-            }
             
             // Validar que capital sea mayor que 0
             if (capital <= 0) {
                 e.preventDefault();
-                alert('El capital debe ser mayor a 0.');
+                
+                // Usar SweetAlert si está disponible
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'El capital debe ser mayor a 0.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                } else {
+                    alert('El capital debe ser mayor a 0.');
+                }
+                
                 capitalInput.focus();
                 return;
             }
             
-            // Mostrar confirmación
-            if (!confirm('¿Estás seguro de crear este crédito?')) {
+            // Confirmación con SweetAlert
+            if (typeof Swal !== 'undefined') {
                 e.preventDefault();
+                
+                Swal.fire({
+                    title: '¿Confirmar creación?',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>Cliente:</strong> ${document.getElementById('nombre_cliente').value}</p>
+                            <p><strong>Capital:</strong> Q ${capital.toFixed(2)}</p>
+                            <p><strong>Fecha:</strong> ${document.getElementById('fecha_credito').value}</p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2E7D32',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, crear crédito',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Deshabilitar botón para evitar doble envío
+                        btnSubmit.disabled = true;
+                        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+                        
+                        // Enviar formulario
+                        form.submit();
+                    }
+                });
+            } else {
+                // Si no hay SweetAlert, usar confirm nativo
+                if (!confirm('¿Estás seguro de crear este crédito?')) {
+                    e.preventDefault();
+                }
             }
         });
     }
     
-    // Sincronizar capital y capital restante por defecto
-    capitalInput.addEventListener('input', function() {
-        const capital = parseFloat(this.value) || 0;
-        const currentRestante = parseFloat(capitalRestanteInput.value) || 0;
-        
-        // Si capital restante está vacío o es mayor que el nuevo capital, ajustarlo
-        if (!capitalRestanteInput.value || currentRestante > capital) {
-            capitalRestanteInput.value = capital;
-            calcularInformacion();
-        }
-    });
+    // Ejecutar al cargar
+    actualizarCapitalRestante();
 });
 </script>
 @endpush

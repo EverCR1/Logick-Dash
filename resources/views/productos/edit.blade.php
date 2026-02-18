@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Producto - LOGICK')
+@section('title', 'Editar Producto')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -198,25 +198,51 @@
                                     @enderror
                                 </div>
                                 
+                                <!-- Categorías con checkboxes -->
                                 <div class="mb-3">
-                                    <label for="categorias" class="form-label">Categorías *</label>
-                                    <select class="form-select @error('categorias') is-invalid @enderror" 
-                                            id="categorias" name="categorias[]" multiple required>
+                                    <label class="form-label">Categorías *</label>
+                                    <div class="border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
                                         @php
                                             $categoriasSeleccionadas = old('categorias', isset($producto['categorias']) ? array_column($producto['categorias'], 'id') : []);
                                         @endphp
+                                        
                                         @foreach($categorias as $id => $nombre)
-                                            <option value="{{ $id }}" {{ in_array($id, $categoriasSeleccionadas) ? 'selected' : '' }}>
-                                                {{ $nombre }}
-                                            </option>
+                                            @php
+                                                $nivel = substr_count($nombre, '-');
+                                                $nombreLimpio = preg_replace('/^[\s\-]+/', '', $nombre);
+                                            @endphp
+                                            <div class="form-check mb-2" style="margin-left: {{ $nivel * 20 }}px;">
+                                                <input class="form-check-input categoria-checkbox" 
+                                                       type="checkbox" 
+                                                       name="categorias[]" 
+                                                       value="{{ $id }}" 
+                                                       id="categoria_{{ $id }}"
+                                                       {{ in_array($id, $categoriasSeleccionadas) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="categoria_{{ $id }}">
+                                                    {{ $nombreLimpio }}
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </select>
-                                    <small class="form-text text-muted">
-                                        Mantén presionada la tecla Ctrl (Cmd en Mac) para seleccionar múltiples categorías
-                                    </small>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <span id="categorias-seleccionadas">{{ count($categoriasSeleccionadas) }}</span> categorías seleccionadas
+                                    </div>
                                     @error('categorias')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="text-danger mt-1">{{ $message }}</div>
                                     @enderror
+                                    <div class="invalid-feedback d-none" id="categorias-error">
+                                        Debes seleccionar al menos una categoría
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones rápidos para categorías -->
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllCategorias">
+                                        <i class="fas fa-check-double me-1"></i>Seleccionar Todas
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllCategorias">
+                                        <i class="fas fa-times me-1"></i>Deseleccionar Todas
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -277,8 +303,6 @@
                     </div>
                 </div>
                 
-                
-                
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ route('productos.index') }}" class="btn btn-secondary">Cancelar</a>
                     <button type="submit" class="btn btn-primary">
@@ -304,12 +328,27 @@
         border-bottom: 1px solid rgba(0,0,0,.125);
     }
     
-    select[multiple] {
-        height: 150px;
-    }
-    
     .input-group-text {
         background-color: #f8f9fa;
+    }
+    
+    .form-check {
+        transition: background-color 0.2s;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    
+    .form-check:hover {
+        background-color: #e9ecef;
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .border.rounded {
+        border-color: #dee2e6 !important;
     }
 </style>
 
@@ -341,6 +380,50 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Validación de precios
     const form = document.getElementById('productoForm');
+    
+    // Funcionalidad para checkboxes de categorías
+    const checkboxes = document.querySelectorAll('.categoria-checkbox');
+    const selectAllBtn = document.getElementById('selectAllCategorias');
+    const deselectAllBtn = document.getElementById('deselectAllCategorias');
+    const categoriasSeleccionadasSpan = document.getElementById('categorias-seleccionadas');
+    const categoriasError = document.getElementById('categorias-error');
+    
+    function actualizarContador() {
+        const seleccionadas = document.querySelectorAll('.categoria-checkbox:checked').length;
+        categoriasSeleccionadasSpan.textContent = seleccionadas;
+        
+        // Remover error si hay seleccionadas
+        if (seleccionadas > 0) {
+            categoriasError.classList.add('d-none');
+        }
+    }
+    
+    // Agregar evento a cada checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarContador);
+    });
+    
+    // Seleccionar todas
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            actualizarContador();
+        });
+    }
+    
+    // Deseleccionar todas
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            actualizarContador();
+        });
+    }
+    
+    // Validación antes de enviar el formulario
     form.addEventListener('submit', function(e) {
         const compra = parseFloat(precioCompra.value) || 0;
         const venta = parseFloat(precioVenta.value) || 0;
@@ -349,42 +432,35 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             alert('El precio de venta no puede ser menor que el precio de compra');
             precioVenta.focus();
+            return;
         }
         
-        // Validar que al menos una categoría esté seleccionada
-        const categoriasSelect = document.getElementById('categorias');
-        const categoriasSeleccionadas = Array.from(categoriasSelect.selectedOptions).map(option => option.value);
+        const seleccionadas = document.querySelectorAll('.categoria-checkbox:checked').length;
         
-        if (categoriasSeleccionadas.length === 0) {
+        if (seleccionadas === 0) {
             e.preventDefault();
-            alert('Debes seleccionar al menos una categoría');
-            categoriasSelect.focus();
+            categoriasError.classList.remove('d-none');
+            
+            // Hacer scroll al área de categorías
+            document.querySelector('.border.rounded').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+            
+            // Resaltar el área
+            const categoriasArea = document.querySelector('.border.rounded');
+            categoriasArea.style.borderColor = '#dc3545';
+            categoriasArea.style.borderWidth = '2px';
+            
+            setTimeout(() => {
+                categoriasArea.style.borderColor = '#dee2e6';
+                categoriasArea.style.borderWidth = '1px';
+            }, 3000);
         }
     });
     
-    // Mejorar la experiencia del select múltiple
-    const categoriasSelect = document.getElementById('categorias');
-    if (categoriasSelect) {
-        // Agregar buscador
-        const searchDiv = document.createElement('div');
-        searchDiv.className = 'mb-2';
-        searchDiv.innerHTML = `
-            <input type="text" id="categoria-search" class="form-control form-control-sm" placeholder="Buscar categoría...">
-        `;
-        categoriasSelect.parentNode.insertBefore(searchDiv, categoriasSelect);
-        
-        // Función de búsqueda
-        document.getElementById('categoria-search').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const options = categoriasSelect.options;
-            
-            for (let i = 0; i < options.length; i++) {
-                const option = options[i];
-                const text = option.text.toLowerCase();
-                option.style.display = text.includes(searchTerm) ? '' : 'none';
-            }
-        });
-    }
+    // Inicializar contador
+    actualizarContador();
     
     // Auto-generar SKU si está vacío
     const skuInput = document.getElementById('sku');

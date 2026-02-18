@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Productos - LOGICK')
+@section('title', 'Productos')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -15,31 +15,12 @@
                 <i class="fas fa-boxes me-2"></i>Gestión de Productos
             </h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('productos.stock-bajo') }}" class="btn btn-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i> Stock Bajo
-                </a>
                 <a href="{{ route('productos.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i> Nuevo Producto
                 </a>
             </div>
         </div>
         <div class="card-body">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
             <!-- Filtros y búsqueda en tiempo real -->
             <div class="row mb-4">
                 <div class="col-md-7">
@@ -74,11 +55,14 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Buscar por SKU, nombre, marca, proveedor...">
+                               placeholder="Buscar por nombre, SKU, marca, color, descripción o ubicación...">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    <small class="text-muted mt-1 d-block">
+                        <i class="fas fa-info-circle"></i> Búsqueda en nombre, SKU, marca, color, descripción y ubicación
+                    </small>
                 </div>
             </div>
 
@@ -249,19 +233,7 @@
                                 $stockEstado = $stock <= 0 ? 'Agotado' : ($stock <= $stockMinimo ? 'Bajo' : 'Normal');
                                 
                                 // Preparar datos para búsqueda
-                                $categoriasTexto = '';
-                                if (!empty($producto['categorias'])) {
-                                    $categoriasTexto = implode(' ', array_column($producto['categorias'], 'nombre'));
-                                }
                                 $proveedorNombre = $producto['proveedor']['nombre'] ?? '';
-                                $searchText = strtolower(
-                                    ($producto['sku'] ?? '') . ' ' . 
-                                    ($producto['nombre'] ?? '') . ' ' . 
-                                    ($producto['marca'] ?? '') . ' ' . 
-                                    ($producto['color'] ?? '') . ' ' . 
-                                    $proveedorNombre . ' ' . 
-                                    $categoriasTexto
-                                );
                                 
                                 // IDs de categorías para filtro
                                 $categoriaIds = [];
@@ -274,10 +246,14 @@
                                 data-stock-minimo="{{ $stockMinimo }}"
                                 data-precio="{{ $producto['precio_venta'] ?? 0 }}"
                                 data-nombre="{{ strtolower($producto['nombre'] ?? '') }}"
+                                data-sku="{{ strtolower($producto['sku'] ?? '') }}"
+                                data-marca="{{ strtolower($producto['marca'] ?? '') }}"
+                                data-color="{{ strtolower($producto['color'] ?? '') }}"
+                                data-descripcion="{{ strtolower($producto['descripcion'] ?? '') }}"
+                                data-ubicacion="{{ strtolower($producto['ubicacion'] ?? '') }}"
                                 data-proveedor-id="{{ $producto['proveedor']['id'] ?? '' }}"
                                 data-proveedor-nombre="{{ strtolower($proveedorNombre) }}"
-                                data-categoria-ids="{{ json_encode($categoriaIds) }}"
-                                data-search="{{ $searchText }}">
+                                data-categoria-ids="{{ json_encode($categoriaIds) }}">
                                 <td class="text-center">
                                     @if($urlImagen)
                                         <img src="{{ $urlImagen }}" 
@@ -422,10 +398,8 @@
 @push('scripts')
 <script>
 // Datos para filtros
-// Datos para filtros - Usar las categorías transformadas del controlador
 const categorias = @json($categoriasParaFiltros);
 const proveedores = @json($proveedoresParaFiltros);
-
 
 document.addEventListener('DOMContentLoaded', function() {
     let currentEstadoFilter = 'todos';
@@ -522,20 +496,47 @@ document.addEventListener('DOMContentLoaded', function() {
         currentSearch = searchText;
         
         const tbody = document.querySelector('#productosTable tbody');
+        if (!tbody) return;
+        
         let rows = Array.from(tbody.querySelectorAll('tr'));
         
         // Excluir fila de no resultados si existe
         rows = rows.filter(row => row.id !== 'no-results-row');
         
+        // Primero aplicar filtros para obtener las filas visibles
         let visibleRows = [];
         
         rows.forEach(row => {
-            const estado = row.dataset.estado;
-            const stock = parseInt(row.dataset.stock) || 0;
-            const stockMinimo = parseInt(row.dataset.stockMinimo) || 1;
-            const proveedorId = row.dataset.proveedorId;
-            const categoriaIds = JSON.parse(row.dataset.categoriaIds || '[]');
-            const searchData = row.dataset.search || '';
+            // Obtener datos específicos para búsqueda
+            const nombre = row.getAttribute('data-nombre') || '';
+            const sku = row.getAttribute('data-sku') || '';
+            const marca = row.getAttribute('data-marca') || '';
+            const color = row.getAttribute('data-color') || '';
+            const descripcion = row.getAttribute('data-descripcion') || '';
+            const ubicacion = row.getAttribute('data-ubicacion') || '';
+            const estado = row.getAttribute('data-estado');
+            const stock = parseInt(row.getAttribute('data-stock')) || 0;
+            const stockMinimo = parseInt(row.getAttribute('data-stock-minimo')) || 1;
+            const proveedorId = row.getAttribute('data-proveedor-id');
+            
+            // Parsear categorías IDs
+            let categoriaIds = [];
+            try {
+                categoriaIds = JSON.parse(row.getAttribute('data-categoria-ids') || '[]');
+            } catch (e) {
+                categoriaIds = [];
+            }
+            
+            // Filtro de búsqueda en múltiples campos
+            let searchMatch = true;
+            if (searchText !== '') {
+                searchMatch = nombre.includes(searchText) || 
+                            sku.includes(searchText) || 
+                            marca.includes(searchText) || 
+                            color.includes(searchText) || 
+                            descripcion.includes(searchText) || 
+                            ubicacion.includes(searchText);
+            }
             
             // Filtro de estado
             const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
@@ -564,10 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 proveedorMatch = proveedorId === currentProveedorFilter;
             }
             
-            // Filtro de búsqueda
-            const searchMatch = searchText === '' || searchData.includes(searchText);
-            
-            // Mostrar u ocultar fila
+            // Guardar estado de visibilidad
             if (estadoMatch && stockMatch && categoriaMatch && proveedorMatch && searchMatch) {
                 row.style.display = '';
                 visibleRows.push(row);
@@ -576,45 +574,130 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Aplicar ordenamiento
-        visibleRows = ordenarFilas(visibleRows, currentSort);
+        // Ahora ordenar SOLO las filas visibles
+        if (currentSort !== 'ninguno') {
+            visibleRows = ordenarFilas(visibleRows, currentSort);
+        }
         
-        // Reordenar la tabla
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
+        // Reconstruir el tbody con las filas ordenadas (solo las visibles)
         while (tbody.firstChild) {
             tbody.removeChild(tbody.firstChild);
         }
         
+        // Agregar primero las filas visibles ordenadas
         visibleRows.forEach(row => tbody.appendChild(row));
-        hiddenRows.forEach(row => tbody.appendChild(row));
+        
+        // Luego agregar las filas ocultas (opcional, pero las mantenemos en el DOM)
+        rows.forEach(row => {
+            if (row.style.display === 'none') {
+                tbody.appendChild(row);
+            }
+        });
         
         // Mostrar mensaje si no hay resultados
         mostrarMensajeNoResultados(visibleRows.length, rows.length);
     }
-    
-    // Función para ordenar filas
+
+    // Función para ordenar filas (CORREGIDA)
     function ordenarFilas(rows, sortType) {
         return rows.sort((a, b) => {
+            // Obtener valores usando getAttribute para asegurar
+            const nombreA = (a.getAttribute('data-nombre') || '').toLowerCase();
+            const nombreB = (b.getAttribute('data-nombre') || '').toLowerCase();
+            
+            // Precios - asegurar que sean números
+            const precioA = parseFloat(a.getAttribute('data-precio')) || 0;
+            const precioB = parseFloat(b.getAttribute('data-precio')) || 0;
+            
+            // Stock - asegurar que sean números enteros
+            const stockA = parseInt(a.getAttribute('data-stock')) || 0;
+            const stockB = parseInt(b.getAttribute('data-stock')) || 0;
+            
             switch(sortType) {
                 case 'nombre_asc':
-                    return (a.dataset.nombre || '').localeCompare(b.dataset.nombre || '');
+                    return nombreA.localeCompare(nombreB);
                 case 'nombre_desc':
-                    return (b.dataset.nombre || '').localeCompare(a.dataset.nombre || '');
+                    return nombreB.localeCompare(nombreA);
                 case 'precio_asc':
-                    return (parseFloat(a.dataset.precio) || 0) - (parseFloat(b.dataset.precio) || 0);
+                    return precioA - precioB;
                 case 'precio_desc':
-                    return (parseFloat(b.dataset.precio) || 0) - (parseFloat(a.dataset.precio) || 0);
+                    return precioB - precioA;
                 case 'stock_asc':
-                    return (parseInt(a.dataset.stock) || 0) - (parseInt(b.dataset.stock) || 0);
+                    return stockA - stockB;
                 case 'stock_desc':
-                    return (parseInt(b.dataset.stock) || 0) - (parseInt(a.dataset.stock) || 0);
+                    return stockB - stockA;
                 default:
                     return 0;
             }
         });
     }
+
+    // Función para limpiar filtros (actualizada)
+    window.limpiarFiltros = function() {
+        currentEstadoFilter = 'todos';
+        currentStockFilter = 'todos';
+        currentCategoriaFilter = null;
+        currentProveedorFilter = null;
+        currentSort = 'nombre_asc'; // Valor por defecto
+        
+        // Actualizar botones de estado
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Actualizar botones de stock
+        document.querySelectorAll('.filter-stock-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.stock === 'todos') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Resetear radio buttons
+        const categoriaTodos = document.getElementById('categoriaTodos');
+        if (categoriaTodos) categoriaTodos.click();
+        
+        const proveedorTodos = document.getElementById('proveedorTodos');
+        if (proveedorTodos) proveedorTodos.click();
+        
+        // Limpiar búsqueda
+        document.getElementById('searchInput').value = '';
+        
+        // Resetear dropdown de ordenamiento (opcional)
+        document.querySelectorAll('.sort-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        
+        aplicarFiltros();
+    };
+
+    // Eventos para ordenamiento (mejorado)
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remover clase active de todas las opciones
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            
+            // Agregar clase active a la opción seleccionada
+            this.classList.add('active');
+            
+            // Actualizar el texto del botón dropdown para mostrar la selección actual
+            const sortButton = document.querySelector('.dropdown-toggle[data-bs-toggle="dropdown"]');
+            if (sortButton) {
+                const sortText = this.textContent.trim();
+                sortButton.innerHTML = `<i class="fas fa-sort me-1"></i> ${sortText}`;
+            }
+            
+            currentSort = this.dataset.sort;
+            aplicarFiltros();
+        });
+    });
     
     // Función para mostrar mensaje cuando no hay resultados
     function mostrarMensajeNoResultados(visibleCount, totalRows) {
@@ -645,39 +728,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Función para limpiar filtros
-    window.limpiarFiltros = function() {
-        currentEstadoFilter = 'todos';
-        currentStockFilter = 'todos';
-        currentCategoriaFilter = null;
-        currentProveedorFilter = null;
-        currentSort = 'nombre_asc';
-        
-        // Actualizar botones de estado
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'todos') {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Actualizar botones de stock
-        document.querySelectorAll('.filter-stock-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.stock === 'todos') {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Resetear radio buttons
-        document.getElementById('categoriaTodos')?.click();
-        document.getElementById('proveedorTodos')?.click();
-        
-        // Limpiar búsqueda
-        document.getElementById('searchInput').value = '';
-        
-        aplicarFiltros();
-    };
     
     // Eventos para filtros de estado
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -699,14 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Eventos para ordenamiento
-    document.querySelectorAll('.sort-option').forEach(option => {
-        option.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentSort = this.dataset.sort;
-            aplicarFiltros();
-        });
-    });
     
     // Búsqueda en tiempo real
     let searchTimeout;
@@ -726,8 +768,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
     
     // Inicializar botones activos
-    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
-    document.querySelector('.filter-stock-btn[data-stock="todos"]').classList.add('active');
+    const estadoBtn = document.querySelector('.filter-btn[data-filter="todos"]');
+    if (estadoBtn) estadoBtn.classList.add('active');
+    
+    const stockBtn = document.querySelector('.filter-stock-btn[data-stock="todos"]');
+    if (stockBtn) stockBtn.classList.add('active');
     
     // Agregar tooltips a los botones
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
@@ -765,6 +810,7 @@ function abrirModalImagen(src, titulo) {
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     cursor: pointer;
 }
+
 
 .table-hover tbody tr:hover {
     background-color: rgba(0,0,0,0.02);
@@ -834,6 +880,8 @@ function abrirModalImagen(src, titulo) {
     padding-left: 1.5rem;
 }
 
+
+
 /* Estilos responsivos */
 @media (max-width: 768px) {
     .table-responsive {
@@ -863,7 +911,8 @@ function abrirModalImagen(src, titulo) {
         width: 100%;
         text-align: left;
     }
-}
-</style>
 
+}
+
+</style>
 @endpush

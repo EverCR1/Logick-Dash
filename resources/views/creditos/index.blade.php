@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Créditos - LOGICK')
+@section('title', 'Créditos')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -96,22 +96,6 @@
             </div>
         </div>
         <div class="card-body">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
             <!-- Filtros y búsqueda en tiempo real -->
             <div class="row mb-4">
                 <div class="col-md-7">
@@ -194,7 +178,7 @@
                                 <th>Fecha Crédito</th>
                                 <th>Último Pago</th>
                                 <th>Estado</th>
-                                <th style="width: 150px;">Acciones</th>
+                                <th style="width: 180px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -291,9 +275,19 @@
                                         <a href="{{ route('creditos.edit', $credito['id'] ?? '#') }}" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ route('creditos.registrar-pago', $credito['id'] ?? '#') }}" class="btn btn-sm btn-success" title="Registrar pago">
+                                        @if(($credito['capital_restante'] ?? 0) > 0)
+                                        <button type="button" class="btn btn-sm btn-success btn-registrar-pago" 
+                                                data-credito-id="{{ $credito['id'] }}"
+                                                data-cliente="{{ $credito['nombre_cliente'] ?? 'N/A' }}"
+                                                data-capital-restante="{{ $credito['capital_restante'] ?? 0 }}"
+                                                title="Registrar pago">
                                             <i class="fas fa-money-bill"></i>
-                                        </a>
+                                        </button>
+                                        @else
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled title="Crédito pagado">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        @endif
                                         <form action="{{ route('creditos.change-status', $credito['id'] ?? '#') }}" method="POST" class="d-inline">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-{{ $estadoColors[$credito['estado']] ?? 'secondary' }}" 
@@ -310,7 +304,7 @@
                     </table>
                 </div>
 
-                <!-- Paginación (mantener para navegación) -->
+                <!-- Paginación -->
                 @if(!empty($creditosLinks) && count($creditosLinks) > 0)
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted">
@@ -342,11 +336,15 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para registrar pago (dinámico) -->
+@include('creditos.partials._modal_registrar_pago_dinamico')
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ===== CONFIGURACIÓN DE FILTROS Y BÚSQUEDA =====
     let currentFilter = 'todos';
     let currentSort = 'fecha_desc';
     let currentSearch = '';
@@ -499,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         aplicarFiltros();
     };
     
-    // Filtrado por estado
+    // Event listeners para filtros
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -509,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Ordenamiento
+    // Event listeners para ordenamiento
     document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
@@ -533,24 +531,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchInput').focus();
     });
     
+    // ===== CONFIGURACIÓN DEL MODAL DE PAGO =====
+    // Event listeners para botones de registrar pago
+    document.querySelectorAll('.btn-registrar-pago').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const creditoId = this.dataset.creditoId;
+            const cliente = this.dataset.cliente;
+            const capitalRestante = parseFloat(this.dataset.capitalRestante);
+            
+            // Llamar a la función global para abrir el modal
+            if (window.abrirModalPago) {
+                window.abrirModalPago(creditoId, cliente, capitalRestante);
+            }
+        });
+    });
+    
     // Inicializar botones activos
     document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
     document.querySelector('.sort-btn[data-sort="fecha_desc"]').classList.add('active');
     
-    // Agregar tooltips a los botones
+    // Tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Confirmación antes de cambiar estado
-    const statusForms = document.querySelectorAll('form[action*="change-status"]');
-    statusForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            if (!confirm('¿Estás seguro de cambiar el estado de este crédito?')) {
-                e.preventDefault();
-            }
-        });
     });
 });
 </script>

@@ -25,9 +25,11 @@ class ClienteController extends Controller
         $search = $request->get('search', '');
         $estado = $request->get('estado', 'todos');
         $tipo = $request->get('tipo', 'todos');
+        $page = $request->get('page', 1);
         
-        // Llamar a la API igual que en servicios
+        // Llamar a la API con paginación
         $response = $this->apiService->get('clientes', [
+            'page' => $page,
             'query' => $search,
             'estado' => $estado,
             'tipo' => $tipo
@@ -35,11 +37,36 @@ class ClienteController extends Controller
         
         if ($response->successful()) {
             $data = $response->json();
-            
-            // DEBUG: Ver qué devuelve la API
-            // dd($data);
-            
             $clientes = $data['clientes'] ?? [];
+            
+            // Transformar los links de paginación
+            if (isset($clientes['links'])) {
+                $clientes['links'] = $this->transformPaginationLinks($clientes['links'], $request->path());
+            }
+            
+            // Transformar las URLs en los links de paginación
+            if (isset($clientes['links'])) {
+                foreach ($clientes['links'] as &$link) {
+                    if (isset($link['url']) && $link['url']) {
+                        // Extraer el número de página de la URL original
+                        $parsedUrl = parse_url($link['url']);
+                        parse_str($parsedUrl['query'] ?? '', $queryParams);
+                        $page = $queryParams['page'] ?? null;
+                        
+                        if ($page) {
+                            // Mantener los filtros actuales
+                            $filtros = [
+                                'page' => $page,
+                                'search' => $search,
+                                'estado' => $estado,
+                                'tipo' => $tipo
+                            ];
+                            // Reemplazar con la ruta del frontend incluyendo filtros
+                            $link['url'] = route('clientes.index', $filtros);
+                        }
+                    }
+                }
+            }
         } else {
             $clientes = [
                 'data' => [],
@@ -49,6 +76,29 @@ class ClienteController extends Controller
         }
 
         return view('clientes.index', compact('clientes', 'search', 'estado', 'tipo'));
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
 

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Ver Crédito - LOGICK')
+@section('title', 'Ver Crédito')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -199,9 +199,11 @@
                                 </button>
                             </form>
                             
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">
+                            @if(($credito['capital_restante'] ?? 0) > 0)
+                            <button type="button" class="btn btn-primary" id="btnRegistrarPagoShow">
                                 <i class="fas fa-money-bill-wave me-2"></i>Registrar Pago
                             </button>
+                            @endif
                             
                             <form action="{{ route('creditos.destroy', $credito['id'] ?? '#') }}" method="POST" 
                                   class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este crédito?')">
@@ -239,37 +241,26 @@
                     
                     <div class="d-grid gap-2">
                         <!-- Botón para pago total -->
-                        <form action="{{ route('creditos.registrar-pago', $credito['id']) }}" method="POST" 
-                              onsubmit="return confirm('¿Registrar pago total del crédito?')">
-                            @csrf
-                            <input type="hidden" name="monto" value="{{ $capitalRestante }}">
-                            <input type="hidden" name="tipo" value="pago_total">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-check-circle me-2"></i>Registrar Pago Total
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-success w-100" id="btnPagoTotalRapido">
+                            <i class="fas fa-check-circle me-2"></i>Registrar Pago Total
+                        </button>
                         
                         <!-- Botones para abonos comunes -->
                         @php
                             $abonosSugeridos = [
-                                $capitalRestante * 0.25,
-                                $capitalRestante * 0.50,
-                                $capitalRestante * 0.75,
+                                round($capitalRestante * 0.25, 2),
+                                round($capitalRestante * 0.50, 2),
+                                round($capitalRestante * 0.75, 2),
                                 $capitalRestante
                             ];
                         @endphp
                         
                         @foreach($abonosSugeridos as $index => $abono)
-                            @if($abono > 0 && $abono <= $capitalRestante)
-                            <form action="{{ route('creditos.registrar-pago', $credito['id']) }}" method="POST" 
-                                  onsubmit="return confirm('¿Registrar abono de Q{{ number_format($abono, 2) }}?')">
-                                @csrf
-                                <input type="hidden" name="monto" value="{{ round($abono, 2) }}">
-                                <input type="hidden" name="tipo" value="abono">
-                                <button type="submit" class="btn btn-outline-primary w-100">
-                                    <i class="fas fa-money-bill-wave me-2"></i>Abono: Q{{ number_format($abono, 2) }}
-                                </button>
-                            </form>
+                            @if($abono > 0 && $abono < $capitalRestante)
+                            <button type="button" class="btn btn-outline-primary w-100 btn-abono-rapido" 
+                                    data-monto="{{ $abono }}">
+                                <i class="fas fa-money-bill-wave me-2"></i>Abono: Q{{ number_format($abono, 2) }}
+                            </button>
                             @endif
                         @endforeach
                     </div>
@@ -318,97 +309,65 @@
     </div>
 </div>
 
-<!-- Modal para registrar pago personalizado -->
-<div class="modal fade" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Registrar Pago/Abono</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('creditos.registrar-pago', $credito['id']) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="monto" class="form-label">
-                            Monto (Q) <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">Q</span>
-                            <input type="number" step="0.01" min="0.01" max="{{ $credito['capital_restante'] ?? 0 }}" 
-                                   class="form-control" id="monto" name="monto" required>
-                        </div>
-                        <small class="form-text text-muted">
-                            Máximo: Q{{ number_format($credito['capital_restante'] ?? 0, 2) }}
-                        </small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de Pago <span class="text-danger">*</span></label>
-                        <div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tipo" 
-                                       id="tipo_abono" value="abono" checked>
-                                <label class="form-check-label" for="tipo_abono">
-                                    Abono (pago parcial)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tipo" 
-                                       id="tipo_pago_total" value="pago_total">
-                                <label class="form-check-label" for="tipo_pago_total">
-                                    Pago Total (liquidar crédito)
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones" name="observaciones" 
-                                  rows="2" placeholder="Observaciones adicionales..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Registrar Pago</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal para registrar pago (dinámico) -->
+@include('creditos.partials._modal_registrar_pago_dinamico')
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configurar monto máximo en el modal
-    const montoInput = document.getElementById('monto');
+    const creditoId = '{{ $credito["id"] ?? "#" }}';
+    const cliente = '{{ $credito["nombre_cliente"] ?? "N/A" }}';
     const capitalRestante = {{ $credito['capital_restante'] ?? 0 }};
     
-    if (montoInput) {
-        montoInput.max = capitalRestante;
-        montoInput.placeholder = 'Q' + capitalRestante.toFixed(2);
-        
-        // Auto-seleccionar pago total si el monto es igual al capital restante
-        montoInput.addEventListener('input', function() {
-            const monto = parseFloat(this.value) || 0;
-            const tipoPagoTotal = document.getElementById('tipo_pago_total');
-            
-            if (Math.abs(monto - capitalRestante) < 0.01) {
-                tipoPagoTotal.checked = true;
-            } else {
-                document.getElementById('tipo_abono').checked = true;
-            }
-        });
-        
-        // Al seleccionar pago total, llenar con el monto completo
-        document.getElementById('tipo_pago_total').addEventListener('change', function() {
-            if (this.checked) {
-                montoInput.value = capitalRestante.toFixed(2);
+    // Botón principal de registrar pago
+    const btnRegistrarPagoShow = document.getElementById('btnRegistrarPagoShow');
+    if (btnRegistrarPagoShow) {
+        btnRegistrarPagoShow.addEventListener('click', function() {
+            if (window.abrirModalPago) {
+                window.abrirModalPago(creditoId, cliente, capitalRestante);
             }
         });
     }
+    
+    // Botón de pago total rápido
+    const btnPagoTotalRapido = document.getElementById('btnPagoTotalRapido');
+    if (btnPagoTotalRapido) {
+        btnPagoTotalRapido.addEventListener('click', function() {
+            if (window.abrirModalPago) {
+                window.abrirModalPago(creditoId, cliente, capitalRestante);
+                
+                // Programar para seleccionar pago total después de que se abra el modal
+                setTimeout(() => {
+                    const tipoPagoTotal = document.getElementById('tipoPagoTotal');
+                    if (tipoPagoTotal) {
+                        tipoPagoTotal.checked = true;
+                        tipoPagoTotal.dispatchEvent(new Event('change'));
+                    }
+                }, 100);
+            }
+        });
+    }
+    
+    // Botones de abono rápido
+    document.querySelectorAll('.btn-abono-rapido').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const monto = this.dataset.monto;
+            
+            if (window.abrirModalPago) {
+                window.abrirModalPago(creditoId, cliente, capitalRestante);
+                
+                // Programar para establecer el monto después de que se abra el modal
+                setTimeout(() => {
+                    const montoInput = document.getElementById('montoPago');
+                    if (montoInput) {
+                        montoInput.value = monto;
+                        montoInput.dispatchEvent(new Event('input'));
+                    }
+                }, 100);
+            }
+        });
+    });
 });
 </script>
 @endpush

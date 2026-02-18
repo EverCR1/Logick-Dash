@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Estadísticas de Clientes - LOGICK')
+@section('title', 'Estadísticas de Clientes')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
