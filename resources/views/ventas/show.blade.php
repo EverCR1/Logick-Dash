@@ -21,9 +21,15 @@
                         <i class="fas fa-arrow-left me-2"></i> Volver
                     </a>
                     @if($venta['estado'] === 'pendiente' || $venta['estado'] === 'completada')
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                        <i class="fas fa-print me-2"></i> Imprimir
-                    </button>
+                    <!-- En lugar del botón de imprimir, usa este -->
+                    <a href="{{ route('ventas.comprobante', $venta['id']) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-download me-2"></i> Descargar Comprobante
+                    </a>
+
+                    <!-- Opcional: botón para ver en el navegador -->
+                    <a href="{{ route('ventas.comprobante.preview', $venta['id']) }}" class="btn btn-outline-info btn-sm" target="_blank">
+                        <i class="fas fa-eye me-2"></i> Ver Comprobante
+                    </a>
                     @endif
                     @if($venta['estado'] === 'pendiente' || $venta['estado'] === 'completada')
                     <button type="button" class="btn btn-danger btn-sm" onclick="confirmarCancelacion({{ $venta['id'] }})">
@@ -297,9 +303,6 @@
                 <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i> Volver
                 </a>
-                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i> Imprimir
-                </button>
                 @if($venta['estado'] !== 'cancelada' && $venta['estado'] !== 'anulada')
                 <button type="button" class="btn btn-danger" onclick="confirmarCancelacion({{ $venta['id'] }})">
                     <i class="fas fa-ban me-2"></i> Cancelar Venta

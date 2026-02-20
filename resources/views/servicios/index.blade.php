@@ -37,7 +37,7 @@
                     </div>
                     
                     <div class="btn-group ms-2" role="group">
-                        <button type="button" class="btn btn-outline-info btn-sm filter-margen-btn" data-margen="todos">
+                        <button type="button" class="btn btn-outline-info btn-sm filter-margen-btn active" data-margen="todos">
                             Todos
                         </button>
                         <button type="button" class="btn btn-outline-success btn-sm filter-margen-btn" data-margen="alto">
@@ -58,11 +58,14 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Buscar por código, nombre, descripción...">
+                               placeholder="Buscar por código, nombre, descripción, categoría...">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    <small class="text-muted mt-1 d-block">
+                        <i class="fas fa-info-circle"></i> Búsqueda en código, nombre, descripción y categorías
+                    </small>
                 </div>
             </div>
 
@@ -232,22 +235,16 @@
                                     $margenCategoria = 'bajo';
                                 }
                                 
-                                // Preparar datos para búsqueda
+                                // Preparar texto de categorías para búsqueda
                                 $categoriasTexto = '';
-                                if (!empty($servicio['categorias'])) {
-                                    $categoriasTexto = implode(' ', array_column($servicio['categorias'], 'nombre'));
-                                }
-                                $searchText = strtolower(
-                                    ($servicio['codigo'] ?? '') . ' ' . 
-                                    ($servicio['nombre'] ?? '') . ' ' . 
-                                    ($servicio['descripcion'] ?? '') . ' ' . 
-                                    $categoriasTexto
-                                );
-                                
-                                // IDs de categorías para filtro
                                 $categoriaIds = [];
                                 if (!empty($servicio['categorias'])) {
-                                    $categoriaIds = array_column($servicio['categorias'], 'id');
+                                    $categoriasArray = [];
+                                    foreach ($servicio['categorias'] as $categoria) {
+                                        $categoriasArray[] = strtolower($categoria['nombre'] ?? '');
+                                        $categoriaIds[] = $categoria['id'];
+                                    }
+                                    $categoriasTexto = implode(' ', $categoriasArray);
                                 }
                             @endphp
                             <tr data-estado="{{ $servicio['estado'] ?? 'activo' }}"
@@ -256,8 +253,10 @@
                                 data-precio="{{ $precio_final }}"
                                 data-inversion="{{ $inversion }}"
                                 data-nombre="{{ strtolower($servicio['nombre'] ?? '') }}"
-                                data-categoria-ids="{{ json_encode($categoriaIds) }}"
-                                data-search="{{ $searchText }}">
+                                data-codigo="{{ strtolower($servicio['codigo'] ?? '') }}"
+                                data-descripcion="{{ strtolower($servicio['descripcion'] ?? '') }}"
+                                data-categorias-texto="{{ $categoriasTexto }}"
+                                data-categoria-ids="{{ json_encode($categoriaIds) }}">
                                 <td class="text-center">
                                     @if($urlImagen)
                                         <img src="{{ $urlImagen }}" 
@@ -462,6 +461,8 @@ document.addEventListener('DOMContentLoaded', function() {
         currentSearch = searchText;
         
         const tbody = document.querySelector('#serviciosTable tbody');
+        if (!tbody) return;
+        
         let rows = Array.from(tbody.querySelectorAll('tr'));
         
         // Excluir fila de no resultados si existe
@@ -470,11 +471,31 @@ document.addEventListener('DOMContentLoaded', function() {
         let visibleRows = [];
         
         rows.forEach(row => {
+            // Obtener datos de los atributos data-*
             const estado = row.dataset.estado;
             const margen = row.dataset.margen;
             const precio = parseFloat(row.dataset.precio) || 0;
-            const categoriaIds = JSON.parse(row.dataset.categoriaIds || '[]');
-            const searchData = row.dataset.search || '';
+            const nombre = row.dataset.nombre || '';
+            const codigo = row.dataset.codigo || '';
+            const descripcion = row.dataset.descripcion || '';
+            const categoriasTexto = row.dataset.categoriasTexto || '';
+            
+            // Parsear categorías IDs
+            let categoriaIds = [];
+            try {
+                categoriaIds = JSON.parse(row.dataset.categoriaIds || '[]');
+            } catch (e) {
+                categoriaIds = [];
+            }
+            
+            // Filtro de búsqueda en múltiples campos
+            let searchMatch = true;
+            if (searchText !== '') {
+                searchMatch = nombre.includes(searchText) || 
+                            codigo.includes(searchText) || 
+                            descripcion.includes(searchText) || 
+                            categoriasTexto.includes(searchText);
+            }
             
             // Filtro de estado
             const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
@@ -497,10 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 precioMatch = precio <= precioMax;
             }
             
-            // Filtro de búsqueda
-            const searchMatch = searchText === '' || searchData.includes(searchText);
-            
-            // Mostrar u ocultar fila
+            // Guardar estado de visibilidad
             if (estadoMatch && margenMatch && categoriaMatch && precioMatch && searchMatch) {
                 row.style.display = '';
                 visibleRows.push(row);
@@ -509,19 +527,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Aplicar ordenamiento
-        visibleRows = ordenarFilas(visibleRows, currentSort);
+        // Aplicar ordenamiento solo a las filas visibles
+        if (currentSort !== 'ninguno') {
+            visibleRows = ordenarFilas(visibleRows, currentSort);
+        }
         
-        // Reordenar la tabla
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
+        // Reconstruir el tbody con las filas ordenadas
         while (tbody.firstChild) {
             tbody.removeChild(tbody.firstChild);
         }
         
+        // Agregar primero las filas visibles ordenadas
         visibleRows.forEach(row => tbody.appendChild(row));
-        hiddenRows.forEach(row => tbody.appendChild(row));
+        
+        // Luego agregar las filas ocultas
+        rows.forEach(row => {
+            if (row.style.display === 'none') {
+                tbody.appendChild(row);
+            }
+        });
         
         // Mostrar mensaje si no hay resultados
         mostrarMensajeNoResultados(visibleRows.length, rows.length);
@@ -608,7 +632,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Resetear radio buttons de categoría
-        document.getElementById('categoriaTodos')?.click();
+        const categoriaTodos = document.getElementById('categoriaTodos');
+        if (categoriaTodos) categoriaTodos.click();
         
         // Limpiar inputs de precio
         document.getElementById('precioMin').value = '';
@@ -616,6 +641,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Limpiar búsqueda
         document.getElementById('searchInput').value = '';
+        
+        // Resetear dropdown de ordenamiento
+        document.querySelectorAll('.sort-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        
+        // Actualizar texto del botón de ordenamiento
+        const sortButton = document.querySelector('.dropdown-toggle[data-bs-toggle="dropdown"]');
+        if (sortButton) {
+            sortButton.innerHTML = '<i class="fas fa-sort me-1"></i> Ordenar por';
+        }
         
         aplicarFiltros();
     };
@@ -645,12 +681,32 @@ document.addEventListener('DOMContentLoaded', function() {
         precioMin = document.getElementById('precioMin').value ? parseFloat(document.getElementById('precioMin').value) : null;
         precioMax = document.getElementById('precioMax').value ? parseFloat(document.getElementById('precioMax').value) : null;
         aplicarFiltros();
+        
+        // Cerrar dropdown (opcional)
+        const dropdown = bootstrap.Dropdown.getInstance(document.querySelector('[data-bs-toggle="dropdown"]'));
+        if (dropdown) dropdown.hide();
     });
     
     // Eventos para ordenamiento
     document.querySelectorAll('.sort-option').forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
+            
+            // Remover clase active de todas las opciones
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            
+            // Agregar clase active a la opción seleccionada
+            this.classList.add('active');
+            
+            // Actualizar el texto del botón dropdown
+            const sortButton = document.querySelector('.dropdown-toggle[data-bs-toggle="dropdown"]');
+            if (sortButton) {
+                const sortText = this.textContent.trim();
+                sortButton.innerHTML = `<i class="fas fa-sort me-1"></i> ${sortText}`;
+            }
+            
             currentSort = this.dataset.sort;
             aplicarFiltros();
         });
@@ -674,8 +730,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
     
     // Inicializar botones activos
-    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
-    document.querySelector('.filter-margen-btn[data-margen="todos"]').classList.add('active');
+    const estadoBtn = document.querySelector('.filter-btn[data-filter="todos"]');
+    if (estadoBtn) estadoBtn.classList.add('active');
+    
+    const margenBtn = document.querySelector('.filter-margen-btn[data-margen="todos"]');
+    if (margenBtn) margenBtn.classList.add('active');
     
     // Agregar tooltips a los botones
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));

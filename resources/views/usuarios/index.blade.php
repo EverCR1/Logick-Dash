@@ -20,7 +20,6 @@
         </div>
         <div class="card-body">
 
-
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-circle me-2"></i>
@@ -33,7 +32,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn" data-filter="todos">
                             Todos
                         </button>
                         <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="activo">
@@ -47,82 +46,122 @@
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Buscar por nombre, email o username...">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Buscar por nombre, email o username..." value="{{ $search ?? '' }}">
                     </div>
                 </div>
             </div>
+
+            @php
+                // Extraer datos de manera segura
+                $usuariosData = [];
+                $usuariosLinks = [];
+                $usuariosMeta = [];
+                
+                if (isset($usuarios['data'])) {
+                    $usuariosData = $usuarios['data'];
+                } elseif (isset($usuarios) && is_array($usuarios)) {
+                    $usuariosData = $usuarios;
+                }
+                
+                if (isset($usuarios['links']) && is_array($usuarios['links'])) {
+                    $usuariosLinks = $usuarios['links'];
+                }
+                
+                if (isset($usuarios['meta']) && is_array($usuarios['meta'])) {
+                    $usuariosMeta = $usuarios['meta'];
+                }
+                
+                // Calcular el número inicial para la paginación
+                $currentPage = $usuariosMeta['current_page'] ?? 1;
+                $perPage = $usuariosMeta['per_page'] ?? 20;
+                $startNumber = ($currentPage - 1) * $perPage + 1;
+            @endphp
 
             <div class="table-responsive">
                 <table class="table table-hover table-striped" id="usersTable">
                     <thead class="bg-primary text-white">
                         <tr>
-                            <th>ID</th>
+                            <th style="width: 60px;">No.</th>
                             <th>Usuario</th>
                             <th>Nombre Completo</th>
                             <th>Email</th>
                             <th>Rol</th>
                             <th>Estado</th>
-                            <th>Acciones</th>
+                            <th style="width: 200px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($usuarios as $usuario)
-                        <tr data-estado="{{ $usuario['estado'] }}">
-                            <td>{{ $usuario['id'] }}</td>
+                        @forelse($usuariosData as $index => $usuario)
+                        <tr data-estado="{{ $usuario['estado'] ?? 'activo' }}">
                             <td>
-                                <strong>{{ $usuario['username'] }}</strong>
+                                <span class="fw-bold">{{ $startNumber + $index }}</span>
                             </td>
-                            <td>{{ $usuario['nombres'] }} {{ $usuario['apellidos'] }}</td>
                             <td>
-                                <a href="mailto:{{ $usuario['email'] }}">{{ $usuario['email'] }}</a>
+                                <strong>{{ $usuario['username'] ?? 'N/A' }}</strong>
+                            </td>
+                            <td>{{ ($usuario['nombres'] ?? '') . ' ' . ($usuario['apellidos'] ?? '') }}</td>
+                            <td>
+                                @if(!empty($usuario['email'] ?? ''))
+                                    <a href="mailto:{{ $usuario['email'] }}">{{ $usuario['email'] }}</a>
+                                @else
+                                    N/A
+                                @endif
                             </td>
                             <td>
                                 @php
+                                    $rol = $usuario['rol'] ?? 'vendedor';
                                     $rolClass = [
                                         'administrador' => 'bg-danger',
                                         'vendedor' => 'bg-success',
                                         'analista' => 'bg-info'
-                                    ][$usuario['rol']] ?? 'bg-secondary';
+                                    ][$rol] ?? 'bg-secondary';
                                     
                                     $rolText = [
                                         'administrador' => 'Administrador',
                                         'vendedor' => 'Vendedor',
                                         'analista' => 'Analista'
-                                    ][$usuario['rol']] ?? $usuario['rol'];
+                                    ][$rol] ?? $rol;
+                                    
+                                    $rolIcon = [
+                                        'administrador' => 'crown',
+                                        'vendedor' => 'cash-register',
+                                        'analista' => 'chart-line'
+                                    ][$rol] ?? 'user';
                                 @endphp
                                 <span class="badge {{ $rolClass }}">
-                                    <i class="fas fa-{{ $usuario['rol'] == 'administrador' ? 'crown' : ($usuario['rol'] == 'vendedor' ? 'cash-register' : 'chart-line') }} me-1"></i>
+                                    <i class="fas fa-{{ $rolIcon }} me-1"></i>
                                     {{ $rolText }}
                                 </span>
                             </td>
                             <td>
                                 @php
-                                    $estadoClass = $usuario['estado'] == 'activo' ? 'bg-success' : 'bg-danger';
-                                    $estadoIcon = $usuario['estado'] == 'activo' ? 'check-circle' : 'times-circle';
+                                    $estado = $usuario['estado'] ?? 'activo';
+                                    $estadoClass = $estado == 'activo' ? 'bg-success' : 'bg-danger';
+                                    $estadoIcon = $estado == 'activo' ? 'check-circle' : 'times-circle';
                                 @endphp
                                 <span class="badge {{ $estadoClass }}">
                                     <i class="fas fa-{{ $estadoIcon }} me-1"></i>
-                                    {{ ucfirst($usuario['estado']) }}
+                                    {{ ucfirst($estado) }}
                                 </span>
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('usuarios.show', $usuario['id']) }}" class="btn btn-sm btn-info" title="Ver detalles">
+                                    <a href="{{ route('usuarios.show', $usuario['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('usuarios.edit', $usuario['id']) }}" class="btn btn-sm btn-warning" title="Editar">
+                                    <a href="{{ route('usuarios.edit', $usuario['id'] ?? '#') }}" class="btn btn-sm btn-warning" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    @if($usuario['estado'] == 'activo')
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cambiarEstado({{ $usuario['id'] }}, 'inactivo')" title="Desactivar">
+                                    @if(($usuario['estado'] ?? 'activo') == 'activo')
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cambiarEstado({{ $usuario['id'] ?? 0 }}, 'inactivo')" title="Desactivar">
                                         <i class="fas fa-ban"></i>
                                     </button>
                                     @else
-                                    <button type="button" class="btn btn-sm btn-success" onclick="cambiarEstado({{ $usuario['id'] }}, 'activo')" title="Activar">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="cambiarEstado({{ $usuario['id'] ?? 0 }}, 'activo')" title="Activar">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     @endif
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmarEliminacion({{ $usuario['id'] }}, '{{ $usuario['nombres'] }} {{ $usuario['apellidos'] }}')" title="Eliminar">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmarEliminacion({{ $usuario['id'] ?? 0 }}, '{{ ($usuario['nombres'] ?? '') . ' ' . ($usuario['apellidos'] ?? '') }}')" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -142,6 +181,35 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Paginación -->
+            @if(!empty($usuariosLinks) && count($usuariosLinks) > 0)
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    @if(!empty($usuariosMeta))
+                        Mostrando 
+                        {{ $usuariosMeta['from'] ?? $startNumber }} - 
+                        {{ $usuariosMeta['to'] ?? ($startNumber + count($usuariosData) - 1) }} de 
+                        {{ $usuariosMeta['total'] ?? count($usuariosData) }} usuarios
+                    @else
+                        Mostrando {{ count($usuariosData) }} usuarios
+                    @endif
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0">
+                        @foreach($usuariosLinks as $link)
+                            @if(is_array($link))
+                                <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                    <a class="page-link" href="{{ $link['url'] ?? '#' }}">
+                                        {!! $link['label'] ?? '' !!}
+                                    </a>
+                                </li>
+                            @endif
+                        @endforeach
+                    </ul>
+                </nav>
+            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -203,8 +271,96 @@
 
 @push('scripts')
 <script>
+// Variables para filtros
+let currentEstadoFilter = 'todos';
+
+// Función para aplicar todos los filtros
+function aplicarFiltros() {
+    const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        // Verificar si la fila es la de "no resultados"
+        if (row.id === 'no-results-row') return;
+        
+        const estado = row.dataset.estado;
+        const rowText = row.textContent.toLowerCase();
+        
+        // Verificar filtro de estado
+        const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
+        
+        // Verificar búsqueda
+        const searchMatch = searchText === '' || rowText.includes(searchText);
+        
+        // Mostrar u ocultar fila
+        if (estadoMatch && searchMatch) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    mostrarMensajeNoResultados(visibleCount);
+}
+
+// Función para mostrar mensaje cuando no hay resultados
+function mostrarMensajeNoResultados(visibleCount) {
+    const table = document.getElementById('usersTable');
+    let noResultsRow = document.getElementById('no-results-row');
+    
+    if (visibleCount === 0) {
+        if (!noResultsRow) {
+            const tbody = table.querySelector('tbody');
+            noResultsRow = document.createElement('tr');
+            noResultsRow.id = 'no-results-row';
+            noResultsRow.innerHTML = `
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No se encontraron usuarios con los filtros aplicados</p>
+                    <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                        <i class="fas fa-undo me-2"></i>Limpiar filtros
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(noResultsRow);
+        }
+    } else {
+        if (noResultsRow) {
+            noResultsRow.remove();
+        }
+    }
+}
+
+// Función para limpiar filtros
+window.limpiarFiltros = function() {
+    // Resetear filtro de estado
+    currentEstadoFilter = 'todos';
+    
+    // Actualizar botones de estado
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === 'todos') {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Limpiar búsqueda
+    document.getElementById('searchInput').value = '';
+    
+    // Aplicar filtros
+    aplicarFiltros();
+};
+
 // Función para cambiar estado
 function cambiarEstado(id, nuevoEstado) {
+    if (!id) {
+        alert('ID de usuario no válido');
+        return;
+    }
+    
     const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
     const title = nuevoEstado === 'activo' ? 'Activar Usuario' : 'Desactivar Usuario';
     const message = nuevoEstado === 'activo' 
@@ -235,6 +391,11 @@ function cambiarEstado(id, nuevoEstado) {
 
 // Función para confirmar eliminación
 function confirmarEliminacion(id, nombre) {
+    if (!id) {
+        alert('ID de usuario no válido');
+        return;
+    }
+    
     document.getElementById('usuarioNombre').textContent = nombre;
     document.getElementById('formEliminar').action = `{{ url('usuarios') }}/${id}`;
     new bootstrap.Modal(document.getElementById('modalEliminar')).show();
@@ -245,30 +406,98 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-        
-        const filter = this.dataset.filter;
-        const rows = document.querySelectorAll('#usersTable tbody tr');
-        
-        rows.forEach(row => {
-            if (filter === 'todos') {
-                row.style.display = '';
-            } else {
-                const estado = row.dataset.estado;
-                row.style.display = estado === filter ? '' : 'none';
-            }
-        });
+        currentEstadoFilter = this.dataset.filter;
+        aplicarFiltros();
     });
 });
 
 // Búsqueda en tiempo real
+let searchTimeout;
 document.getElementById('searchInput').addEventListener('keyup', function() {
-    const searchText = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#usersTable tbody tr');
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(aplicarFiltros, 300);
+});
+
+// Inicializar botones activos
+document.addEventListener('DOMContentLoaded', function() {
+    // Establecer filtro inicial basado en URL o por defecto 'todos'
+    const urlParams = new URLSearchParams(window.location.search);
+    const estadoParam = urlParams.get('estado') || 'todos';
     
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.filter === estadoParam) {
+            btn.classList.add('active');
+        }
+    });
+    
+    currentEstadoFilter = estadoParam;
+    
+    // Agregar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.badge {
+    font-size: 0.85em;
+    padding: 0.5em 0.75em;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Estilos para botones de filtro activos */
+.filter-btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.filter-btn[data-filter="activo"].active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.filter-btn[data-filter="inactivo"].active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Estilo para el número correlativo */
+th:first-child, td:first-child {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8rem;
+    }
+    
+    .row.mb-3 {
+        flex-direction: column;
+    }
+    
+    .col-md-6 {
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
 @endpush

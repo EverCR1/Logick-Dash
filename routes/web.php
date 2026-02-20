@@ -139,6 +139,7 @@ Route::middleware(['web.auth'])->group(function () {
         Route::post('/{id}/cambiar-estado', [ClienteController::class, 'changeStatus'])->name('clientes.changeStatus');
         Route::post('/{id}/cambiar-estado', [ClienteController::class, 'changeStatus'])->name('clientes.changeStatus');
         Route::get('/estadisticas', [ClienteController::class, 'estadisticas'])->name('clientes.estadisticas');
+        Route::post('/clientes/crear-rapido', [ClienteController::class, 'crearRapido'])->name('clientes.crear-rapido');
     });
 
     // Ventas (admin y vendedor)
@@ -150,6 +151,8 @@ Route::middleware(['web.auth'])->group(function () {
         Route::post('/{id}/cancelar', [VentaController::class, 'cancelar'])->name('ventas.cancelar');
         Route::get('/buscar', [VentaController::class, 'buscar'])->name('ventas.buscar');
         Route::get('/reporte', [VentaController::class, 'reporte'])->name('ventas.reporte');
+        Route::get('/{id}/comprobante', [VentaController::class, 'descargarComprobante'])->name('ventas.comprobante');
+        Route::get('/{id}/comprobante/preview', [VentaController::class, 'previsualizarComprobante'])->name('ventas.comprobante.preview');
         
         // Nuevas rutas para manejar items de venta
         Route::post('/{id}/items', [VentaController::class, 'agregarItem'])->name('ventas.items.agregar');

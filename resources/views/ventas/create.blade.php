@@ -20,6 +20,8 @@
         <form id="formVenta" method="POST" action="{{ route('ventas.store') }}">
             @csrf
             <input type="hidden" id="items_json" name="items" value="[]">
+            <input type="hidden" id="crear_credito" name="crear_credito" value="0">
+            <input type="hidden" id="credito_data" name="credito_data" value="">
             
             <div class="card-body">
                 @if($errors->any())
@@ -47,7 +49,11 @@
                                     data-url="{{ route('ventas.buscar.clientes.ajax') }}">
                                 <option value="">-- Seleccionar cliente --</option>
                                 @foreach($clientes as $cliente)
-                                    <option value="{{ $cliente['id'] }}">{{ $cliente['nombre'] }} 
+                                    <option value="{{ $cliente['id'] }}" 
+                                            data-nombre="{{ $cliente['nombre'] }}"
+                                            data-nit="{{ $cliente['nit'] ?? '' }}"
+                                            data-telefono="{{ $cliente['telefono'] ?? '' }}">
+                                        {{ $cliente['nombre'] }} 
                                         @if(!empty($cliente['nit'])) | NIT: {{ $cliente['nit'] }} @endif
                                         @if(!empty($cliente['telefono'])) | Tel: {{ $cliente['telefono'] }} @endif
                                     </option>
@@ -198,7 +204,7 @@
                     </div>
                 </div>
 
-                <!-- Observaciones -->
+                <!-- Observaciones y Crédito -->
                 <div class="row mb-4">
                     <div class="col-md-8">
                         <label for="observaciones" class="form-label">Observaciones</label>
@@ -209,10 +215,13 @@
                         <div class="card bg-light h-100">
                             <div class="card-body d-flex flex-column justify-content-center">
                                 <div class="form-check mb-2">
-                                    <input type="checkbox" id="es_credito" name="es_credito" class="form-check-input">
+                                    <input type="checkbox" id="es_credito" name="es_credito" class="form-check-input" onchange="toggleCredito()">
                                     <label for="es_credito" class="form-check-label">¿Es venta a crédito?</label>
                                 </div>
-                                <small class="text-muted">Si marca esta opción, el cliente deberá pagar posteriormente.</small>
+                                <small class="text-muted">Si marca esta opción, se creará un crédito automáticamente.</small>
+                                <div id="credito-info" class="mt-2 small text-info" style="display: none;">
+                                    <i class="fas fa-info-circle me-1"></i> Se creará un crédito con el capital pendiente.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -234,36 +243,7 @@
 </div>
 
 <!-- Modal para nuevo cliente rápido -->
-<div class="modal fade" id="modalCliente" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Agregar Cliente Rápido</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formClienteRapido">
-                    <div class="mb-3">
-                        <label for="cliente_nombre" class="form-label">Nombre *</label>
-                        <input type="text" id="cliente_nombre" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="cliente_nit" class="form-label">NIT</label>
-                        <input type="text" id="cliente_nit" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label for="cliente_telefono" class="form-label">Teléfono</label>
-                        <input type="text" id="cliente_telefono" class="form-control">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarClienteRapido()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
+@include('ventas.partials._modal_cliente_rapido')
 @endsection
 
 @push('styles')
@@ -334,7 +314,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             },
             processResults: function(data) {
-                console.log('Respuesta clientes:', data);
                 if (data.success && data.clientes) {
                     return {
                         results: data.clientes.map(item => ({
@@ -361,21 +340,52 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Eventos
     $('#item_producto_id').on('change', function() {
-        console.log('Producto seleccionado');
         actualizarDatosItem();
     });
     
     $('#item_servicio_id').on('change', function() {
-        console.log('Servicio seleccionado');
         actualizarDatosItem();
     });
     
     $('#item_cantidad, #item_precio, #item_descuento').on('input', function() {
         validarStockItem();
     });
+    
+    // Evento para guardar cliente rápido
+    document.getElementById('btnGuardarClienteRapido').addEventListener('click', guardarClienteRapido);
+    
+    // Evento para cambio de cliente
+    document.getElementById('cliente_id').addEventListener('change', function() {
+        const esCredito = document.getElementById('es_credito').checked;
+        const clienteId = this.value;
+        
+        if (esCredito && !clienteId) {
+            mostrarAlerta('Para una venta a crédito debe seleccionar un cliente', 'warning');
+            document.getElementById('es_credito').checked = false;
+            document.getElementById('credito-info').style.display = 'none';
+            document.getElementById('crear_credito').value = '0';
+        }
+    });
+    
+    // Limpiar modal cuando se cierre
+    document.getElementById('modalCliente').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_nit').value = '';
+        document.getElementById('cliente_telefono').value = '';
+        document.getElementById('cliente_email').value = '';
+        document.getElementById('cliente_direccion').value = '';
+        
+        // Quitar clases de error
+        document.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+            el.remove();
+        });
+    });
 });
 
-// Inicializar Select2 para productos - VERSIÓN CORREGIDA
+// Inicializar Select2 para productos
 function initProductoSelect2() {
     const $select = $('#item_producto_id');
     const url = $select.data('url');
@@ -397,20 +407,16 @@ function initProductoSelect2() {
                     };
                 },
                 processResults: function(data) {
-                    console.log('Respuesta productos API:', data);
-                    
                     if (!data.success || !data.productos) {
                         return { results: [] };
                     }
                     
-                    // Mapear los productos con datos personalizados
                     const results = data.productos.map(producto => ({
                         id: producto.id,
                         text: `${producto.nombre} - Q${parseFloat(producto.precio).toFixed(2)} ${parseInt(producto.stock) > 0 ? '(Stock: ' + producto.stock + ')' : '(Sin stock)'}`,
-                        // Guardar todos los datos como atributos personalizados
                         nombre: producto.nombre,
-                        precio: producto.precio, // Guardar como string, convertiremos después
-                        stock: producto.stock, // Guardar como string, convertiremos después
+                        precio: producto.precio,
+                        stock: producto.stock,
                         sku: producto.sku || '',
                         marca: producto.marca || ''
                     }));
@@ -424,7 +430,6 @@ function initProductoSelect2() {
                 if (item.loading) return item.text;
                 if (!item.id) return item.text;
                 
-                // Usar los datos guardados para mostrar bonito
                 const precio = parseFloat(item.precio) || 0;
                 const stock = parseInt(item.stock) || 0;
                 
@@ -447,7 +452,7 @@ function initProductoSelect2() {
     }
 }
 
-// Inicializar Select2 para servicios - VERSIÓN CORREGIDA
+// Inicializar Select2 para servicios
 function initServicioSelect2() {
     const $select = $('#item_servicio_id');
     const url = $select.data('url');
@@ -469,8 +474,6 @@ function initServicioSelect2() {
                     };
                 },
                 processResults: function(data) {
-                    console.log('Respuesta servicios API:', data);
-                    
                     if (!data.success || !data.servicios) {
                         return { results: [] };
                     }
@@ -516,7 +519,6 @@ function initServicioSelect2() {
 // Cambiar tipo de item
 function cambiarTipoItem() {
     const tipo = document.getElementById('item_tipo').value;
-    console.log('Cambiando tipo a:', tipo);
     
     // Ocultar todos los campos
     document.getElementById('item_campo_producto').style.display = 'none';
@@ -553,27 +555,17 @@ function limpiarCamposItem() {
     document.getElementById('item_stock_info').textContent = '';
 }
 
-// Actualizar datos del item seleccionado - VERSIÓN CORREGIDA
+// Actualizar datos del item seleccionado
 function actualizarDatosItem() {
     const tipo = document.getElementById('item_tipo').value;
-    console.log('Actualizando datos para tipo:', tipo);
     
     if (tipo === 'producto') {
         const select = document.getElementById('item_producto_id');
-        // Obtener el elemento seleccionado directamente del DOM
         const selectedOption = select.options[select.selectedIndex];
         
         if (selectedOption && selectedOption.value) {
-            // Obtener los datos desde los atributos data-*
             const precio = parseFloat(selectedOption.dataset.precio) || 0;
             const stock = parseInt(selectedOption.dataset.stock) || 0;
-            const nombre = selectedOption.dataset.nombre || '';
-            
-            console.log('Datos del producto seleccionado:', {
-                precio: precio,
-                stock: stock,
-                nombre: nombre
-            });
             
             document.getElementById('item_precio').value = precio.toFixed(2);
             
@@ -586,14 +578,12 @@ function actualizarDatosItem() {
                 stockInfo.innerHTML = `<span class="text-success">✓ Stock disponible: ${stock} unidades</span>`;
                 document.getElementById('item_cantidad').max = stock;
                 
-                // Ajustar cantidad si es mayor al stock
                 const cantidad = parseInt(document.getElementById('item_cantidad').value) || 1;
                 if (cantidad > stock) {
                     document.getElementById('item_cantidad').value = stock;
                 }
             }
         } else {
-            console.log('No hay producto seleccionado');
             document.getElementById('item_precio').value = '0';
             document.getElementById('item_stock_info').textContent = '';
         }
@@ -603,10 +593,6 @@ function actualizarDatosItem() {
         
         if (selectedOption && selectedOption.value) {
             const precio = parseFloat(selectedOption.dataset.precio) || 0;
-            
-            console.log('Datos del servicio seleccionado:', {
-                precio: precio
-            });
             
             document.getElementById('item_precio').value = precio.toFixed(2);
             document.getElementById('item_stock_info').innerHTML = '<span class="text-info">✓ Servicio disponible</span>';
@@ -619,7 +605,7 @@ function actualizarDatosItem() {
     validarStockItem();
 }
 
-// Validar stock del item - VERSIÓN CORREGIDA
+// Validar stock del item
 function validarStockItem() {
     const tipo = document.getElementById('item_tipo').value;
     
@@ -639,17 +625,12 @@ function validarStockItem() {
                 return true;
             }
         }
-    } else if (tipo === 'servicio') {
-        return true;
     }
-    
     return true;
 }
 
-// Agregar item a la venta - VERSIÓN CORREGIDA
+// Agregar item a la venta
 function agregarItem() {
-    console.log('Agregando item...');
-    
     const tipo = document.getElementById('item_tipo').value;
     let descripcion = '';
     let producto_id = null;
@@ -740,8 +721,6 @@ function agregarItem() {
         referencia: referencia
     };
     
-    console.log('Item creado:', item);
-    
     // Agregar a la lista
     items.push(item);
     
@@ -754,52 +733,36 @@ function agregarItem() {
     reiniciarSelect2('#item_servicio_id');
     document.getElementById('item_descripcion').value = '';
     
+    // Actualizar información de crédito si está marcado
+    if (document.getElementById('es_credito').checked) {
+        const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
+        const creditoInfo = document.getElementById('credito-info');
+        creditoInfo.innerHTML = `<i class="fas fa-info-circle me-1"></i> Crédito por Q${totalGeneral.toFixed(2)} pendiente.`;
+    }
+    
     // Mostrar mensaje
     mostrarAlerta('Item agregado correctamente', 'success');
 }
 
-// Actualizar tabla de items - VERSIÓN CORREGIDA
+// Actualizar tabla de items
 function actualizarTablaItems() {
     const tbody = document.getElementById('tabla-items');
     const filaVacia = document.getElementById('fila-vacia');
     const tablaTotales = document.getElementById('tabla-totales');
     
-    // Verificar que los elementos existan
-    if (!tbody) {
-        console.error('No se encontró el elemento tabla-items');
-        return;
-    }
-    
     if (items.length === 0) {
-        // Mostrar fila vacía si existe
-        if (filaVacia) {
-            filaVacia.style.display = '';
-        }
-        if (tablaTotales) {
-            tablaTotales.style.display = 'none';
-        }
-        if (document.getElementById('btnRegistrar')) {
-            document.getElementById('btnRegistrar').disabled = true;
-        }
+        if (filaVacia) filaVacia.style.display = '';
+        if (tablaTotales) tablaTotales.style.display = 'none';
+        document.getElementById('btnRegistrar').disabled = true;
         
-        // Limpiar el tbody y mostrar la fila vacía
         tbody.innerHTML = '';
-        if (filaVacia) {
-            tbody.appendChild(filaVacia);
-        }
+        if (filaVacia) tbody.appendChild(filaVacia);
         return;
     }
     
-    // Ocultar fila vacía si existe
-    if (filaVacia) {
-        filaVacia.style.display = 'none';
-    }
-    if (tablaTotales) {
-        tablaTotales.style.display = '';
-    }
-    if (document.getElementById('btnRegistrar')) {
-        document.getElementById('btnRegistrar').disabled = false;
-    }
+    if (filaVacia) filaVacia.style.display = 'none';
+    if (tablaTotales) tablaTotales.style.display = '';
+    document.getElementById('btnRegistrar').disabled = false;
     
     // Generar filas
     let html = '';
@@ -832,57 +795,50 @@ function actualizarTablaItems() {
     const totalDescuento = items.reduce((sum, item) => sum + item.descuento, 0);
     const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
     
-    const totalSubtotalEl = document.getElementById('total_subtotal');
-    const totalDescuentoEl = document.getElementById('total_descuento');
-    const totalGeneralEl = document.getElementById('total_general');
-    
-    if (totalSubtotalEl) totalSubtotalEl.textContent = `Q${totalSubtotal.toFixed(2)}`;
-    if (totalDescuentoEl) totalDescuentoEl.textContent = `Q${totalDescuento.toFixed(2)}`;
-    if (totalGeneralEl) totalGeneralEl.textContent = `Q${totalGeneral.toFixed(2)}`;
+    document.getElementById('total_subtotal').textContent = `Q${totalSubtotal.toFixed(2)}`;
+    document.getElementById('total_descuento').textContent = `Q${totalDescuento.toFixed(2)}`;
+    document.getElementById('total_general').textContent = `Q${totalGeneral.toFixed(2)}`;
     
     // Actualizar campo hidden con JSON
-    const itemsJsonEl = document.getElementById('items_json');
-    if (itemsJsonEl) {
-        itemsJsonEl.value = JSON.stringify(items.map(item => ({
-            tipo: item.tipo,
-            cantidad: item.cantidad,
-            descripcion: item.descripcion,
-            precio_unitario: item.precio_unitario,
-            descuento: item.descuento,
-            producto_id: item.producto_id,
-            servicio_id: item.servicio_id,
-            referencia: item.referencia
-        })));
-    }
+    document.getElementById('items_json').value = JSON.stringify(items.map(item => ({
+        tipo: item.tipo,
+        cantidad: item.cantidad,
+        descripcion: item.descripcion,
+        precio_unitario: item.precio_unitario,
+        descuento: item.descuento,
+        producto_id: item.producto_id,
+        servicio_id: item.servicio_id,
+        referencia: item.referencia
+    })));
 }
 
-// Eliminar item - VERSIÓN CORREGIDA
+// Eliminar item
 function eliminarItem(index) {
     if (confirm('¿Está seguro de eliminar este item?')) {
         items.splice(index, 1);
         actualizarTablaItems();
-        mostrarAlerta('Item eliminado', 'info');
         
-        // Si no quedan items, asegurar que se muestre la fila vacía
-        if (items.length === 0) {
-            const tbody = document.getElementById('tabla-items');
-            const filaVacia = document.getElementById('fila-vacia');
-            if (tbody && filaVacia) {
-                tbody.innerHTML = '';
-                tbody.appendChild(filaVacia);
+        // Actualizar información de crédito si está marcado
+        if (document.getElementById('es_credito').checked) {
+            if (items.length > 0) {
+                const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
+                const creditoInfo = document.getElementById('credito-info');
+                creditoInfo.innerHTML = `<i class="fas fa-info-circle me-1"></i> Crédito por Q${totalGeneral.toFixed(2)} pendiente.`;
+            } else {
+                document.getElementById('credito-info').innerHTML = '<i class="fas fa-info-circle me-1"></i> Se creará un crédito con el capital pendiente.';
             }
         }
+        
+        mostrarAlerta('Item eliminado', 'info');
     }
 }
 
 // =================== FUNCIONES AUXILIARES ===================
 
-// Primera letra mayúscula
 function ucfirst(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-// Mostrar alerta
 function mostrarAlerta(mensaje, tipo = 'info') {
     const alerta = document.createElement('div');
     alerta.className = `alert alert-${tipo === 'error' ? 'danger' : tipo} alert-dismissible fade show`;
@@ -897,51 +853,165 @@ function mostrarAlerta(mensaje, tipo = 'info') {
 // =================== FUNCIONES DE CLIENTE ===================
 
 function abrirModalCliente() {
-    document.getElementById('cliente_nombre').value = '';
-    document.getElementById('cliente_nit').value = '';
-    document.getElementById('cliente_telefono').value = '';
-    new bootstrap.Modal(document.getElementById('modalCliente')).show();
+    const modal = new bootstrap.Modal(document.getElementById('modalCliente'));
+    modal.show();
 }
 
 function guardarClienteRapido() {
     const nombre = document.getElementById('cliente_nombre').value.trim();
+    const nit = document.getElementById('cliente_nit').value.trim();
+    const telefono = document.getElementById('cliente_telefono').value.trim();
+    
     if (!nombre) {
         mostrarAlerta('El nombre es requerido', 'error');
         return;
     }
     
-    fetch('{{ route("clientes.store") }}', {
+    const btnGuardar = document.getElementById('btnGuardarClienteRapido');
+    const textoOriginal = btnGuardar.innerHTML;
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    
+    fetch('{{ route("clientes.crear-rapido") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
         },
         body: JSON.stringify({
             nombre: nombre,
-            nit: document.getElementById('cliente_nit').value.trim(),
-            telefono: document.getElementById('cliente_telefono').value.trim(),
-            tipo: 'natural',
-            estado: 'activo'
+            nit: nit || '',
+            telefono: telefono || ''
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             const select = document.getElementById('cliente_id');
-            const option = new Option(nombre, data.cliente.id);
+            const optionText = `${nombre}${nit ? ' | NIT: ' + nit : ''}${telefono ? ' | Tel: ' + telefono : ''}`;
+            const option = new Option(optionText, data.cliente.id, true, true);
+            
             select.appendChild(option);
             select.value = data.cliente.id;
             $(select).trigger('change');
+            
             bootstrap.Modal.getInstance(document.getElementById('modalCliente')).hide();
             mostrarAlerta('Cliente creado exitosamente', 'success');
         } else {
-            mostrarAlerta('Error al crear cliente', 'error');
+            mostrarAlerta(data.message || 'Error al crear cliente', 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
         mostrarAlerta('Error al crear cliente', 'error');
+    })
+    .finally(() => {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = textoOriginal;
     });
+}
+
+// =================== FUNCIONES PARA CRÉDITO ===================
+
+// Toggle crédito
+function toggleCredito() {
+    const esCredito = document.getElementById('es_credito').checked;
+    const creditoInfo = document.getElementById('credito-info');
+    const crearCredito = document.getElementById('crear_credito');
+    
+    if (esCredito) {
+        // Validar que hay un cliente seleccionado
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            mostrarAlerta('Para una venta a crédito debe seleccionar un cliente', 'warning');
+            document.getElementById('es_credito').checked = false;
+            creditoInfo.style.display = 'none';
+            crearCredito.value = '0';
+            return;
+        }
+        
+        // Validar que hay items
+        if (items.length === 0) {
+            mostrarAlerta('Debe agregar items a la venta antes de marcar como crédito', 'warning');
+            document.getElementById('es_credito').checked = false;
+            creditoInfo.style.display = 'none';
+            crearCredito.value = '0';
+            return;
+        }
+        
+        const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
+        creditoInfo.innerHTML = `<i class="fas fa-info-circle me-1"></i> Crédito por Q${totalGeneral.toFixed(2)} pendiente.`;
+        creditoInfo.style.display = 'block';
+        crearCredito.value = '1';
+    } else {
+        creditoInfo.style.display = 'none';
+        crearCredito.value = '0';
+    }
+}
+
+// Preparar datos de crédito antes de enviar
+function prepararDatosCredito() {
+    const esCredito = document.getElementById('es_credito').checked;
+    
+    if (!esCredito) {
+        document.getElementById('credito_data').value = '';
+        return true;
+    }
+    
+    // Validar que hay items en la venta
+    if (items.length === 0) {
+        mostrarAlerta('Debe agregar items a la venta antes de crear un crédito', 'error');
+        return false;
+    }
+    
+    // Validar que hay un cliente seleccionado
+    const clienteId = document.getElementById('cliente_id').value;
+    if (!clienteId) {
+        mostrarAlerta('Para una venta a crédito debe seleccionar un cliente', 'error');
+        return false;
+    }
+    
+    // Obtener el nombre del cliente del select
+    const select = document.getElementById('cliente_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    // Intentar obtener el nombre del atributo data o del texto
+    let clienteNombre = '';
+    if (selectedOption) {
+        if (selectedOption.dataset.nombre) {
+            clienteNombre = selectedOption.dataset.nombre;
+        } else {
+            // Extraer nombre del texto (antes del primer |)
+            const textParts = selectedOption.text.split('|');
+            clienteNombre = textParts[0].trim();
+        }
+    }
+    
+    // Calcular total de la venta
+    const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
+    
+    // Preparar descripción de productos/servicios (limitar a 200 caracteres)
+    const descripcionItems = items.map(item => 
+        `${item.cantidad} x ${item.descripcion}`
+    ).join(', ').substring(0, 200);
+    
+    // Crear datos del crédito
+    const creditoData = {
+        nombre_cliente: clienteNombre,
+        capital: totalGeneral,
+        producto_o_servicio_dado: descripcionItems,
+        fecha_credito: new Date().toISOString().split('T')[0], // Fecha actual
+        capital_restante: totalGeneral,
+        estado: 'activo',
+        observaciones: document.getElementById('observaciones').value ? 
+            'Crédito generado desde venta: ' + document.getElementById('observaciones').value : 
+            'Crédito generado desde venta'
+    };
+    
+    console.log('Datos de crédito preparados:', creditoData);
+    document.getElementById('credito_data').value = JSON.stringify(creditoData);
+    return true;
 }
 
 // =================== VALIDACIÓN DEL FORMULARIO ===================
@@ -956,6 +1026,12 @@ document.getElementById('formVenta').addEventListener('submit', function(e) {
     if (!document.getElementById('metodo_pago').value) {
         e.preventDefault();
         mostrarAlerta('Debe seleccionar un método de pago', 'error');
+        return;
+    }
+    
+    // Preparar datos de crédito si es necesario
+    if (!prepararDatosCredito()) {
+        e.preventDefault();
         return;
     }
 });

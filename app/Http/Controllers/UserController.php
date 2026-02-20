@@ -15,17 +15,91 @@ class UserController extends Controller
         $this->apiService = $apiService;
     }
 
-    public function index()
+    /**
+     * Mostrar lista de usuarios con paginación y filtros
+     */
+    public function index(Request $request)
     {
-        $response = $this->apiService->get('users');
+        $search = $request->get('search', '');
+        $estado = $request->get('estado', 'todos');
+        $page = $request->get('page', 1);
+        
+        // Parámetros para la API
+        $params = [
+            'page' => $page,
+            'query' => $search,
+            'estado' => $estado
+        ];
+        
+        // Llamar a la API con paginación
+        $response = $this->apiService->get('users', $params);
         
         if ($response->successful()) {
-            $usuarios = $response->json()['users'] ?? [];
+            $data = $response->json();
+            
+            // La API devuelve 'users' con los datos paginados
+            $usuarios = $data['users'] ?? [];
+            
+            // Transformar los links de paginación
+            if (isset($usuarios['links'])) {
+                $usuarios['links'] = $this->transformPaginationLinks($usuarios['links'], $request->path());
+            }
+            
+            // Transformar las URLs en los links de paginación
+            if (isset($usuarios['links'])) {
+                foreach ($usuarios['links'] as &$link) {
+                    if (isset($link['url']) && $link['url']) {
+                        // Extraer el número de página de la URL original
+                        $parsedUrl = parse_url($link['url']);
+                        parse_str($parsedUrl['query'] ?? '', $queryParams);
+                        $page = $queryParams['page'] ?? null;
+                        
+                        if ($page) {
+                            // Mantener los filtros actuales
+                            $filtros = [
+                                'page' => $page,
+                                'search' => $search,
+                                'estado' => $estado
+                            ];
+                            // Reemplazar con la ruta del frontend incluyendo filtros
+                            $link['url'] = route('usuarios.index', $filtros);
+                        }
+                    }
+                }
+            }
         } else {
-            $usuarios = [];
+            // Estructura vacía para cuando falla la API
+            $usuarios = [
+                'data' => [],
+                'links' => [],
+                'meta' => []
+            ];
         }
 
-        return view('usuarios.index', compact('usuarios'));
+        return view('usuarios.index', compact('usuarios', 'search', 'estado'));
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     public function create()

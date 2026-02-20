@@ -115,7 +115,7 @@
                     </div>
                     
                     <div class="btn-group ms-2" role="group">
-                        <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="fecha_desc">
+                        <button type="button" class="btn btn-outline-info btn-sm sort-btn active" data-sort="fecha_desc">
                             <i class="fas fa-sort-amount-down me-1"></i>Más recientes
                         </button>
                         <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="monto_desc">
@@ -127,11 +127,14 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Buscar por cliente, producto, servicio...">
+                               placeholder="Buscar por cliente, producto/servicio...">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    <small class="text-muted mt-1 d-block">
+                        <i class="fas fa-info-circle"></i> Búsqueda en nombre del cliente y producto/servicio
+                    </small>
                 </div>
             </div>
 
@@ -199,31 +202,20 @@
                                     'pagado' => 'Pagado'
                                 ];
 
-                                // Preparar datos para búsqueda
-                                $clienteNombre = $credito['nombre_cliente'] ?? '';
-                                $producto = $credito['producto_o_servicio_dado'] ?? '';
-                                $monto = number_format($credito['capital'] ?? 0, 2);
-                                $restante = number_format($credito['capital_restante'] ?? 0, 2);
-                                $fechaCredito = isset($credito['fecha_credito']) ? \Carbon\Carbon::parse($credito['fecha_credito'])->format('d/m/Y') : '';
-                                $searchText = strtolower(
-                                    $clienteNombre . ' ' . 
-                                    $producto . ' ' . 
-                                    $monto . ' ' . 
-                                    $restante . ' ' . 
-                                    $fechaCredito
-                                );
+                                // Preparar datos para búsqueda - AHORA EN ATRIBUTOS INDIVIDUALES
+                                $clienteNombre = strtolower($credito['nombre_cliente'] ?? '');
+                                $producto = strtolower($credito['producto_o_servicio_dado'] ?? '');
                             @endphp
                             <tr data-estado="{{ $credito['estado'] ?? 'activo' }}"
-                                data-cliente="{{ strtolower($clienteNombre) }}"
-                                data-producto="{{ strtolower($producto) }}"
+                                data-cliente="{{ $clienteNombre }}"
+                                data-producto="{{ $producto }}"
                                 data-monto="{{ $credito['capital'] ?? 0 }}"
-                                data-fecha="{{ $credito['fecha_credito'] ?? '' }}"
-                                data-search="{{ $searchText }}">
+                                data-fecha="{{ $credito['fecha_credito'] ?? '' }}">
                                 <td>
-                                    <strong>{{ $clienteNombre ?: 'N/A' }}</strong>
+                                    <strong>{{ $credito['nombre_cliente'] ?? 'N/A' }}</strong>
                                 </td>
                                 <td>
-                                    <small>{{ Str::limit($producto ?: 'No especificado', 40) }}</small>
+                                    <small>{{ Str::limit($credito['producto_o_servicio_dado'] ?: 'No especificado', 40) }}</small>
                                 </td>
                                 <td>
                                     <strong>Q{{ number_format($credito['capital'] ?? 0, 2) }}</strong>
@@ -357,9 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Función para ordenar filas
     function ordenarFilas(rows, sortType) {
-        const rowsArray = Array.from(rows);
-        
-        return rowsArray.sort((a, b) => {
+        return rows.sort((a, b) => {
             switch(sortType) {
                 case 'fecha_desc':
                     const fechaA = parseFecha(a.dataset.fecha);
@@ -377,18 +367,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Función para reordenar la tabla
-    function reordenarTabla(rows) {
-        const tbody = document.querySelector('#creditosTable tbody');
-        rows.forEach(row => tbody.appendChild(row));
-    }
-    
     // Función para aplicar todos los filtros
     function aplicarFiltros() {
         const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
         currentSearch = searchText;
         
         const tbody = document.querySelector('#creditosTable tbody');
+        if (!tbody) return;
+        
         let rows = Array.from(tbody.querySelectorAll('tr'));
         
         // Excluir fila de no resultados si existe
@@ -397,16 +383,21 @@ document.addEventListener('DOMContentLoaded', function() {
         let visibleRows = [];
         
         rows.forEach(row => {
+            // Obtener datos de los atributos data-*
             const estado = row.dataset.estado;
-            const searchData = row.dataset.search || '';
+            const cliente = row.dataset.cliente || '';
+            const producto = row.dataset.producto || '';
             
-            // Verificar filtro de estado
+            // Filtro de estado
             const estadoMatch = currentFilter === 'todos' || estado === currentFilter;
             
-            // Verificar búsqueda
-            const searchMatch = searchText === '' || searchData.includes(searchText);
+            // Filtro de búsqueda - buscar en cliente y producto
+            let searchMatch = true;
+            if (searchText !== '') {
+                searchMatch = cliente.includes(searchText) || producto.includes(searchText);
+            }
             
-            // Mostrar u ocultar fila
+            // Guardar estado de visibilidad
             if (estadoMatch && searchMatch) {
                 row.style.display = '';
                 visibleRows.push(row);
@@ -420,11 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             visibleRows = ordenarFilas(visibleRows, currentSort);
         }
         
-        // Reinsertar las filas visibles en orden
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
-        // Primero eliminar todas las filas
+        // Reconstruir el tbody con las filas ordenadas
         while (tbody.firstChild) {
             tbody.removeChild(tbody.firstChild);
         }
@@ -433,7 +420,11 @@ document.addEventListener('DOMContentLoaded', function() {
         visibleRows.forEach(row => tbody.appendChild(row));
         
         // Agregar filas ocultas al final
-        hiddenRows.forEach(row => tbody.appendChild(row));
+        rows.forEach(row => {
+            if (row.style.display === 'none') {
+                tbody.appendChild(row);
+            }
+        });
         
         // Mostrar mensaje si no hay resultados
         mostrarMensajeNoResultados(visibleRows.length, rows.length);
@@ -531,6 +522,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchInput').focus();
     });
     
+    // Botón limpiar todos los filtros (opcional - puedes agregar un botón en la UI)
+    const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+    if (btnLimpiarFiltros) {
+        btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
+    }
+    
     // ===== CONFIGURACIÓN DEL MODAL DE PAGO =====
     // Event listeners para botones de registrar pago
     document.querySelectorAll('.btn-registrar-pago').forEach(btn => {
@@ -547,8 +544,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Inicializar botones activos
-    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
-    document.querySelector('.sort-btn[data-sort="fecha_desc"]').classList.add('active');
+    const filterBtn = document.querySelector('.filter-btn[data-filter="todos"]');
+    if (filterBtn) filterBtn.classList.add('active');
+    
+    const sortBtn = document.querySelector('.sort-btn[data-sort="fecha_desc"]');
+    if (sortBtn) sortBtn.classList.add('active');
     
     // Tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));

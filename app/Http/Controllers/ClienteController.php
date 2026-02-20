@@ -7,6 +7,7 @@ use App\Services\ApiService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 
 class ClienteController extends Controller
 {
@@ -262,5 +263,65 @@ class ClienteController extends Controller
 
         return redirect()->route('clientes.index')
             ->with('error', 'Error al cargar estadísticas');
+    }
+
+    /**
+     * Crear cliente rápido (AJAX para ventas)
+     */
+    public function crearRapido(Request $request)
+    {
+        // Validar solo los campos necesarios para cliente rápido
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:200',
+            'nit' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:100',
+            'telefono' => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Preparar datos para enviar a la API
+        $data = [
+            'nombre' => $request->nombre,
+            'nit' => $request->nit,
+            'email' => $request->email,
+            'telefono' => $request->telefono,
+            'direccion' => $request->direccion,
+            'tipo' => 'natural', // Por defecto para cliente rápido
+            'estado' => 'activo',
+        ];
+
+        // Enviar a la API usando tu ApiService
+        $response = $this->apiService->post('clientes', $data);
+
+        if ($response->successful()) {
+            $clienteData = $response->json();
+            
+            return response()->json([
+                'success' => true,
+                'cliente' => [
+                    'id' => $clienteData['id'] ?? $clienteData['data']['id'] ?? null,
+                    'nombre' => $clienteData['nombre'] ?? $clienteData['data']['nombre'] ?? $request->nombre,
+                    'nit' => $clienteData['nit'] ?? $clienteData['data']['nit'] ?? $request->nit,
+                    'telefono' => $clienteData['telefono'] ?? $clienteData['data']['telefono'] ?? $request->telefono,
+                ],
+                'message' => 'Cliente creado exitosamente'
+            ], 201);
+        }
+
+        // Si hay error, devolver mensaje de la API
+        $errorData = $response->json();
+        return response()->json([
+            'success' => false,
+            'message' => $errorData['message'] ?? 'Error al crear cliente',
+            'errors' => $errorData['errors'] ?? null
+        ], $response->status());
     }
 }
