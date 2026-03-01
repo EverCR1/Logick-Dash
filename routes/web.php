@@ -129,6 +129,7 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Rutas de clientes (administrador y vendedor)
     Route::middleware(['web.auth', 'role:administrador,vendedor'])->prefix('clientes')->group(function () {
+        Route::get('/filter', [ClienteController::class, 'filter'])->name('clientes.filter');
         Route::get('/', [ClienteController::class, 'index'])->name('clientes.index');
         Route::get('/crear', [ClienteController::class, 'create'])->name('clientes.create');
         Route::post('/', [ClienteController::class, 'store'])->name('clientes.store');

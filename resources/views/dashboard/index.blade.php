@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-// Al final del script, después del gráfico de créditos
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ... gráfico de créditos existente ...

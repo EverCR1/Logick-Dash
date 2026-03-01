@@ -80,6 +80,53 @@ class ClienteController extends Controller
     }
 
     /**
+     * Filtrar clientes via AJAX (llama al endpoint /clientes/filter)
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search' => $request->get('search', ''),
+            'estado' => $request->get('estado', 'todos'),
+            'tipo'   => $request->get('tipo', 'todos'),
+            'page'   => $request->get('page', 1),
+            'per_page' => 20,
+        ];
+
+        $response = $this->apiService->get('clientes/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $clientes = $data['clientes'] ?? [];
+
+            // Transformar URLs de paginación al dominio del frontend
+            if (isset($clientes['links'])) {
+                foreach ($clientes['links'] as &$link) {
+                    if (!empty($link['url'])) {
+                        preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                        $page = $matches[1] ?? null;
+                        if ($page) {
+                            $link['url'] = route('clientes.index') . '?' . http_build_query(array_merge($params, ['page' => $page]));
+                        } else {
+                            $link['url'] = null;
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'clientes' => $clientes,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'clientes' => ['data' => [], 'links' => [], 'total' => 0],
+            'message' => 'Error al filtrar'
+        ], 500);
+    }
+
+    /**
      * Transformar los links de paginación
      */
     private function transformPaginationLinks($links, $path)

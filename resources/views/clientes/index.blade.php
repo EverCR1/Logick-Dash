@@ -29,7 +29,7 @@
             <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn" data-filter="todos">
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
                             Todos
                         </button>
                         <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="activo">
@@ -41,7 +41,7 @@
                     </div>
                     
                     <div class="btn-group ms-2" role="group">
-                        <button type="button" class="btn btn-outline-info btn-sm type-filter" data-type="todos">
+                        <button type="button" class="btn btn-outline-info btn-sm type-filter active" data-type="todos">
                             Todos
                         </button>
                         <button type="button" class="btn btn-outline-primary btn-sm type-filter" data-type="natural">
@@ -69,40 +69,41 @@
             </div>
 
             @php
-                // Extraer datos de manera segura
-                $clientesData = [];
+                $clientesData  = [];
                 $clientesLinks = [];
-                $clientesMeta = [];
+                $clientesMeta  = [];
                 
                 if (isset($clientes) && is_array($clientes)) {
-                    $clientesData = $clientes['data'] ?? [];
+                    $clientesData  = $clientes['data'] ?? [];
                     $clientesLinks = $clientes['links'] ?? [];
-                    $clientesMeta = [
+                    $clientesMeta  = [
                         'current_page' => $clientes['current_page'] ?? 1,
-                        'per_page' => $clientes['per_page'] ?? 20,
-                        'total' => $clientes['total'] ?? 0,
-                        'from' => $clientes['from'] ?? 1,
-                        'to' => $clientes['to'] ?? 0
+                        'per_page'     => $clientes['per_page'] ?? 20,
+                        'total'        => $clientes['total'] ?? 0,
+                        'from'         => $clientes['from'] ?? 1,
+                        'to'           => $clientes['to'] ?? 0
                     ];
                 }
                 
-                // Calcular el número inicial para la paginación
                 $currentPage = $clientesMeta['current_page'] ?? 1;
-                $perPage = $clientesMeta['per_page'] ?? 20;
+                $perPage     = $clientesMeta['per_page'] ?? 20;
                 $startNumber = ($currentPage - 1) * $perPage + 1;
             @endphp
 
-            @if(empty($clientesData))
-                <div class="text-center py-5">
-                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No hay clientes registrados</h5>
-                    <p class="text-muted">Comienza agregando tu primer cliente</p>
-                    <a href="{{ route('clientes.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i> Crear Primer Cliente
-                    </a>
-                </div>
-            @else
-                <div class="table-responsive">
+            {{-- Contenedor principal de la tabla (siempre presente en el DOM) --}}
+            <div id="tabla-container">
+                @if(empty($clientesData))
+                    <div class="text-center py-5" id="empty-state">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay clientes registrados</h5>
+                        <p class="text-muted">Comienza agregando tu primer cliente</p>
+                        <a href="{{ route('clientes.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i> Crear Primer Cliente
+                        </a>
+                    </div>
+                @endif
+
+                <div class="table-responsive" id="table-wrapper" style="{{ empty($clientesData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="clientesTable">
                         <thead class="bg-primary text-white">
                             <tr>
@@ -117,57 +118,40 @@
                         </thead>
                         <tbody>
                             @foreach($clientesData as $index => $cliente)
-                            @php
-                                // Preparar datos para búsqueda en minúsculas
-                                $nombreBusqueda = strtolower($cliente['nombre'] ?? '');
-                                $nitBusqueda = strtolower($cliente['nit'] ?? '');
-                                $emailBusqueda = strtolower($cliente['email'] ?? '');
-                                $telefonoBusqueda = strtolower($cliente['telefono'] ?? '');
-                                $notasBusqueda = strtolower($cliente['notas'] ?? '');
-                            @endphp
-                            <tr data-estado="{{ $cliente['estado'] ?? 'activo' }}" 
-                                data-tipo="{{ $cliente['tipo'] ?? 'natural' }}"
-                                data-nombre="{{ $nombreBusqueda }}"
-                                data-nit="{{ $nitBusqueda }}"
-                                data-email="{{ $emailBusqueda }}"
-                                data-telefono="{{ $telefonoBusqueda }}"
-                                data-notas="{{ $notasBusqueda }}">
-                                <td>
-                                    <span class="fw-bold">{{ $startNumber + $index }}</span>
-                                </td>
+                            <tr>
+                                <td><span class="fw-bold">{{ $startNumber + $index }}</span></td>
                                 <td>
                                     <strong>{{ $cliente['nombre'] ?? 'N/A' }}</strong>
-                                    @if(isset($cliente['notas']) && !empty($cliente['notas']))
+                                    @if(!empty($cliente['notas']))
                                         <small class="text-muted d-block">{{ Str::limit($cliente['notas'], 50) }}</small>
                                     @endif
                                 </td>
                                 <td>{{ $cliente['nit'] ?? 'N/A' }}</td>
                                 <td>
-                                    @if(isset($cliente['email']) && !empty($cliente['email']))
+                                    @if(!empty($cliente['email']))
                                         <div><i class="fas fa-envelope me-1"></i> {{ $cliente['email'] }}</div>
                                     @endif
-                                    @if(isset($cliente['telefono']) && !empty($cliente['telefono']))
+                                    @if(!empty($cliente['telefono']))
                                         <div><i class="fas fa-phone me-1"></i> {{ $cliente['telefono'] }}</div>
                                     @endif
                                 </td>
                                 <td>
                                     @php
-                                        $tipoClass = ($cliente['tipo'] ?? 'natural') == 'natural' ? 'bg-info' : 'bg-warning';
-                                        $tipoIcon = ($cliente['tipo'] ?? 'natural') == 'natural' ? 'user' : 'building';
+                                        $tipoClass = ($cliente['tipo'] ?? 'natural') === 'natural' ? 'bg-info' : 'bg-warning';
+                                        $tipoIcon  = ($cliente['tipo'] ?? 'natural') === 'natural' ? 'user' : 'building';
+                                        $tipoLabel = ($cliente['tipo'] ?? 'natural') === 'natural' ? 'Natural' : 'Jurídico';
                                     @endphp
                                     <span class="badge {{ $tipoClass }}">
-                                        <i class="fas fa-{{ $tipoIcon }} me-1"></i>
-                                        {{ ($cliente['tipo'] ?? 'natural') == 'natural' ? 'Natural' : 'Jurídico' }}
+                                        <i class="fas fa-{{ $tipoIcon }} me-1"></i>{{ $tipoLabel }}
                                     </span>
                                 </td>
                                 <td>
                                     @php
-                                        $estadoClass = ($cliente['estado'] ?? 'activo') == 'activo' ? 'bg-success' : 'bg-secondary';
-                                        $estadoIcon = ($cliente['estado'] ?? 'activo') == 'activo' ? 'check-circle' : 'times-circle';
+                                        $estadoClass = ($cliente['estado'] ?? 'activo') === 'activo' ? 'bg-success' : 'bg-secondary';
+                                        $estadoIcon  = ($cliente['estado'] ?? 'activo') === 'activo' ? 'check-circle' : 'times-circle';
                                     @endphp
                                     <span class="badge {{ $estadoClass }}">
-                                        <i class="fas fa-{{ $estadoIcon }} me-1"></i>
-                                        {{ $cliente['estado'] ?? 'activo' }}
+                                        <i class="fas fa-{{ $estadoIcon }} me-1"></i>{{ $cliente['estado'] ?? 'activo' }}
                                     </span>
                                 </td>
                                 <td>
@@ -180,7 +164,7 @@
                                            class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        @if(($cliente['estado'] ?? 'activo') == 'activo')
+                                        @if(($cliente['estado'] ?? 'activo') === 'activo')
                                         <form action="{{ route('clientes.changeStatus', $cliente['id'] ?? '#') }}" 
                                               method="POST" class="d-inline"
                                               onsubmit="return confirm('¿Estás seguro de desactivar este cliente?')">
@@ -201,7 +185,7 @@
                                         @endif
                                         <form action="{{ route('clientes.destroy', $cliente['id'] ?? '#') }}" 
                                               method="POST" class="d-inline"
-                                              onsubmit="return confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')">
+                                              onsubmit="return confirm('¿Estás seguro de eliminar este cliente?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
@@ -217,10 +201,11 @@
                 </div>
 
                 <!-- Paginación -->
-                @if(!empty($clientesLinks) && count($clientesLinks) > 0)
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        @if(!empty($clientesMeta))
+                <div class="d-flex justify-content-between align-items-center mt-3" 
+                     id="paginacion-container" 
+                     style="{{ empty($clientesData) ? 'display:none;' : '' }}">
+                    <div class="text-muted" id="contador-wrap">
+                        @if(!empty($clientesMeta) && ($clientesMeta['total'] ?? 0) > 0)
                             Mostrando 
                             {{ $clientesMeta['from'] ?? $startNumber }} - 
                             {{ $clientesMeta['to'] ?? ($startNumber + count($clientesData) - 1) }} de 
@@ -230,21 +215,23 @@
                         @endif
                     </div>
                     <nav aria-label="Page navigation">
-                        <ul class="pagination mb-0">
-                            @foreach($clientesLinks as $link)
-                                @if(is_array($link))
-                                    <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
-                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">
-                                            {!! $link['label'] ?? '' !!}
-                                        </a>
-                                    </li>
-                                @endif
-                            @endforeach
-                        </ul>
+                        <div id="paginacion-wrap">
+                            <ul class="pagination mb-0">
+                                @foreach($clientesLinks as $link)
+                                    @if(is_array($link))
+                                        <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                            <a class="page-link" href="{{ $link['url'] ?? '#' }}">
+                                                {!! $link['label'] ?? '' !!}
+                                            </a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                     </nav>
                 </div>
-                @endif
-            @endif
+            </div>{{-- fin #tabla-container --}}
+
         </div>
     </div>
 </div>
@@ -252,269 +239,389 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Variables para filtros
-    let currentEstadoFilter = 'todos';
-    let currentTipoFilter = 'todos';
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Referencias al DOM ────────────────────────────────────────────
+    // Se usan funciones getter para que siempre busquen el elemento actual
+    const getTabla         = () => document.querySelector('#clientesTable tbody');
+    const paginacionWrap   = document.getElementById('paginacion-wrap');
+    const contadorWrap     = document.getElementById('contador-wrap');
+    const tableWrapper     = document.getElementById('table-wrapper');
+    const paginacionCont   = document.getElementById('paginacion-container');
+    const emptyState       = document.getElementById('empty-state');
+
+    // ── Estado de filtros ──────────────────────────────────────────────
+    let currentEstado = 'todos';
+    let currentTipo   = 'todos';
     let currentSearch = '';
-    
-    // Función para aplicar todos los filtros
-    function aplicarFiltros() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-        currentSearch = searchText;
-        
-        const tbody = document.querySelector('#clientesTable tbody');
-        if (!tbody) return;
-        
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Excluir fila de no resultados si existe
-        rows = rows.filter(row => row.id !== 'no-results-row');
-        
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            // Obtener datos específicos para búsqueda desde data-* attributes
-            const nombre = row.getAttribute('data-nombre') || '';
-            const nit = row.getAttribute('data-nit') || '';
-            const email = row.getAttribute('data-email') || '';
-            const telefono = row.getAttribute('data-telefono') || '';
-            const notas = row.getAttribute('data-notas') || '';
-            
-            const estado = row.getAttribute('data-estado');
-            const tipo = row.getAttribute('data-tipo');
-            
-            // Filtro de búsqueda en múltiples campos
-            let searchMatch = true;
-            if (searchText !== '') {
-                searchMatch = nombre.includes(searchText) || 
-                            nit.includes(searchText) || 
-                            email.includes(searchText) || 
-                            telefono.includes(searchText) || 
-                            notas.includes(searchText);
-            }
-            
-            // Filtro de estado
-            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
-            
-            // Filtro de tipo
-            const tipoMatch = currentTipoFilter === 'todos' || tipo === currentTipoFilter;
-            
-            // Mostrar u ocultar fila
-            if (estadoMatch && tipoMatch && searchMatch) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Mostrar mensaje si no hay resultados
-        mostrarMensajeNoResultados(visibleCount, rows.length);
+    let searchTimeout = null;
+    let isFiltering   = false;
+
+    // ── Detectar si hay filtros activos ───────────────────────────────
+    function hayFiltrosActivos() {
+        return currentEstado !== 'todos' || currentTipo !== 'todos' || currentSearch.trim() !== '';
     }
-    
-    // Función para mostrar mensaje cuando no hay resultados
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const table = document.getElementById('clientesTable');
-        const tbody = table.querySelector('tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="7" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron clientes</h5>
-                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
+
+    // ── Mostrar/ocultar tabla y empty state ───────────────────────────
+    function mostrarTabla() {
+        if (tableWrapper)   tableWrapper.style.display   = '';
+        if (paginacionCont) paginacionCont.style.display = '';
+        if (emptyState)     emptyState.style.display     = 'none';
+    }
+
+    function mostrarEmptyState(mensaje = null) {
+        if (tableWrapper)   tableWrapper.style.display   = 'none';
+        if (paginacionCont) paginacionCont.style.display = 'none';
+        if (emptyState) {
+            emptyState.style.display = '';
+            if (mensaje) {
+                emptyState.innerHTML = `
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">${mensaje}</h5>
+                    <p class="text-muted mb-3">Intenta con otros términos o filtros</p>
+                    <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                        <i class="fas fa-undo me-2"></i>Limpiar filtros
+                    </button>`;
             }
         }
     }
-    
-    // Función para limpiar filtros
-    window.limpiarFiltros = function() {
-        // Resetear filtros
-        currentEstadoFilter = 'todos';
-        currentTipoFilter = 'todos';
-        
-        // Actualizar botones de estado
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'todos') {
-                btn.classList.add('active');
-            }
+
+    // ── Llamar al endpoint /clientes/filter ───────────────────────────
+    function fetchFiltrado(page = 1) {
+        if (!hayFiltrosActivos()) {
+            window.location.href = "{{ route('clientes.index') }}";
+            return;
+        }
+
+        isFiltering = true;
+        mostrarLoader();
+
+        const params = new URLSearchParams({
+            search: currentSearch,
+            estado: currentEstado,
+            tipo:   currentTipo,
+            page:   page
         });
-        
-        // Actualizar botones de tipo
-        document.querySelectorAll('.type-filter').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.type === 'todos') {
-                btn.classList.add('active');
+
+        fetch(`{{ route('clientes.filter') }}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderTabla(data.clientes);
+            } else {
+                mostrarError('Error al filtrar clientes');
             }
+        })
+        .catch(() => mostrarError('Error de conexión'))
+        .finally(() => { isFiltering = false; });
+    }
+
+    // ── Renderizar filas de la tabla ──────────────────────────────────
+    function renderTabla(paginado) {
+        const registros   = paginado.data ?? [];
+        const links       = paginado.links ?? [];
+        const currentPage = paginado.current_page ?? 1;
+        const perPage     = paginado.per_page ?? 20;
+        const total       = paginado.total ?? 0;
+        const from        = paginado.from ?? 0;
+        const to          = paginado.to ?? 0;
+        const startNumber = (currentPage - 1) * perPage + 1;
+
+        if (registros.length === 0) {
+            mostrarEmptyState('No se encontraron clientes');
+            actualizarContador(0, 0, 0);
+            actualizarPaginacion([]);
+            return;
+        }
+
+        // Asegurar que la tabla esté visible
+        mostrarTabla();
+
+        const tbody = getTabla();
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        registros.forEach((cliente, index) => {
+            const numero      = startNumber + index;
+            const tipoClass   = cliente.tipo === 'natural' ? 'bg-info' : 'bg-warning';
+            const tipoIcon    = cliente.tipo === 'natural' ? 'user' : 'building';
+            const tipoLabel   = cliente.tipo === 'natural' ? 'Natural' : 'Jurídico';
+            const estadoClass = cliente.estado === 'activo' ? 'bg-success' : 'bg-secondary';
+            const estadoIcon  = cliente.estado === 'activo' ? 'check-circle' : 'times-circle';
+            const showUrl     = `/clientes/${cliente.id}`;
+            const editUrl     = `/clientes/${cliente.id}/editar`;
+            const statusUrl   = `/clientes/${cliente.id}/cambiar-estado`;
+            const deleteUrl   = `/clientes/${cliente.id}`;
+
+            const btnEstado = cliente.estado === 'activo'
+                ? `<form action="${statusUrl}" method="POST" class="d-inline" onsubmit="return confirm('¿Desactivar este cliente?')">
+                       <input type="hidden" name="_token" value="${csrfToken}">
+                       <button type="submit" class="btn btn-sm btn-secondary" title="Desactivar">
+                           <i class="fas fa-ban"></i>
+                       </button>
+                   </form>`
+                : `<form action="${statusUrl}" method="POST" class="d-inline" onsubmit="return confirm('¿Activar este cliente?')">
+                       <input type="hidden" name="_token" value="${csrfToken}">
+                       <button type="submit" class="btn btn-sm btn-success" title="Activar">
+                           <i class="fas fa-check"></i>
+                       </button>
+                   </form>`;
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td><span class="fw-bold">${numero}</span></td>
+                    <td>
+                        <strong>${cliente.nombre ?? 'N/A'}</strong>
+                        ${cliente.notas ? `<small class="text-muted d-block">${cliente.notas.substring(0, 50)}</small>` : ''}
+                    </td>
+                    <td>${cliente.nit ?? 'N/A'}</td>
+                    <td>
+                        ${cliente.email    ? `<div><i class="fas fa-envelope me-1"></i>${cliente.email}</div>`   : ''}
+                        ${cliente.telefono ? `<div><i class="fas fa-phone me-1"></i>${cliente.telefono}</div>`   : ''}
+                    </td>
+                    <td><span class="badge ${tipoClass}"><i class="fas fa-${tipoIcon} me-1"></i>${tipoLabel}</span></td>
+                    <td><span class="badge ${estadoClass}"><i class="fas fa-${estadoIcon} me-1"></i>${cliente.estado}</span></td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="${showUrl}" class="btn btn-sm btn-info"    title="Ver detalles"><i class="fas fa-eye"></i></a>
+                            <a href="${editUrl}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            ${btnEstado}
+                            <form action="${deleteUrl}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('¿Eliminar este cliente? Esta acción no se puede deshacer.')">
+                                <input type="hidden" name="_token"  value="${csrfToken}">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>`);
         });
-        
-        // Limpiar búsqueda
-        document.getElementById('searchInput').value = '';
-        
-        // Aplicar filtros
-        aplicarFiltros();
+
+        actualizarContador(from, to, total);
+        actualizarPaginacion(links);
+    }
+
+    // ── Actualizar contador ───────────────────────────────────────────
+    function actualizarContador(from, to, total) {
+        if (!contadorWrap) return;
+        contadorWrap.innerHTML = total > 0
+            ? `Mostrando ${from} - ${to} de ${total} clientes`
+            : 'Sin resultados';
+    }
+
+    // ── Renderizar paginación ─────────────────────────────────────────
+    function actualizarPaginacion(links) {
+        if (!paginacionWrap) return;
+
+        // Si solo hay 3 links (prev, pág1, next) no hay necesidad de mostrar paginación
+        if (!links || links.length <= 3) {
+            paginacionWrap.innerHTML = '';
+            return;
+        }
+
+        let html = '<ul class="pagination mb-0">';
+        links.forEach(link => {
+            const active   = link.active ? 'active' : '';
+            const disabled = !link.url   ? 'disabled' : '';
+            let pageNum    = null;
+
+            if (link.url) {
+                const match = link.url.match(/[?&]page=(\d+)/);
+                pageNum = match ? match[1] : null;
+            }
+
+            const clickHandler = pageNum
+                ? `onclick="cambiarPagina(${pageNum}); return false;"`
+                : '';
+
+            html += `<li class="page-item ${active} ${disabled}">
+                        <a class="page-link" href="#" ${clickHandler}>${link.label}</a>
+                     </li>`;
+        });
+        html += '</ul>';
+        paginacionWrap.innerHTML = html;
+    }
+
+    // ── Loader mientras carga ─────────────────────────────────────────
+    function mostrarLoader() {
+        // Mostrar tabla si estaba oculta para poder poner el loader
+        mostrarTabla();
+
+        const tbody = getTabla();
+        if (!tbody) return;
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Buscando clientes...</p>
+                </td>
+            </tr>`;
+    }
+
+    function mostrarError(msg) {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>${msg}
+                </td>
+            </tr>`;
+    }
+
+    // ── Función pública para cambiar página ───────────────────────────
+    window.cambiarPagina = function (page) {
+        fetchFiltrado(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    
-    // Filtrado por estado
+
+    // ── Limpiar filtros ───────────────────────────────────────────────
+    window.limpiarFiltros = function () {
+        currentEstado = 'todos';
+        currentTipo   = 'todos';
+        currentSearch = '';
+        document.getElementById('searchInput').value = '';
+
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === 'todos');
+        });
+        document.querySelectorAll('.type-filter').forEach(b => {
+            b.classList.toggle('active', b.dataset.type === 'todos');
+        });
+
+        window.location.href = "{{ route('clientes.index') }}";
+    };
+
+    // ── Event listeners ───────────────────────────────────────────────
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentEstadoFilter = this.dataset.filter;
-            aplicarFiltros();
+            currentEstado = this.dataset.filter;
+            fetchFiltrado();
         });
     });
-    
-    // Filtrado por tipo
+
     document.querySelectorAll('.type-filter').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.type-filter').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentTipoFilter = this.dataset.type;
-            aplicarFiltros();
+            currentTipo = this.dataset.type;
+            fetchFiltrado();
         });
     });
-    
-    // Búsqueda en tiempo real con debounce
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('keyup', function() {
+
+    document.getElementById('searchInput').addEventListener('keyup', function () {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(aplicarFiltros, 300);
+        currentSearch = this.value;
+        searchTimeout = setTimeout(() => fetchFiltrado(), 350);
     });
-    
-    // Botón limpiar búsqueda
-    document.getElementById('clearSearch').addEventListener('click', function() {
+
+    document.getElementById('clearSearch').addEventListener('click', function () {
         document.getElementById('searchInput').value = '';
-        aplicarFiltros();
+        currentSearch = '';
+        fetchFiltrado();
         document.getElementById('searchInput').focus();
     });
-    
-    // Inicializar botones activos según los filtros de la URL
-    const urlParams = new URLSearchParams(window.location.search);
+
+    // ── Activar botones según URL al cargar ───────────────────────────
+    const urlParams   = new URLSearchParams(window.location.search);
     const estadoParam = urlParams.get('estado') || 'todos';
-    const tipoParam = urlParams.get('tipo') || 'todos';
-    
-    // Activar botón de estado correspondiente
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.dataset.filter === estadoParam) {
-            btn.classList.add('active');
-        } else if (estadoParam === 'todos' && btn.dataset.filter === 'todos') {
-            btn.classList.add('active');
-        }
+    const tipoParam   = urlParams.get('tipo')   || 'todos';
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === estadoParam);
     });
-    
-    // Activar botón de tipo correspondiente
-    document.querySelectorAll('.type-filter').forEach(btn => {
-        if (btn.dataset.type === tipoParam) {
-            btn.classList.add('active');
-        } else if (tipoParam === 'todos' && btn.dataset.type === 'todos') {
-            btn.classList.add('active');
-        }
+    document.querySelectorAll('.type-filter').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === tipoParam);
     });
-    
-    currentEstadoFilter = estadoParam;
-    currentTipoFilter = tipoParam;
-    
-    // Agregar tooltips a los botones
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+
+    currentEstado = estadoParam;
+    currentTipo   = tipoParam;
 });
 </script>
 @endpush
 
 @push('styles')
 <style>
-    /* Estilo para el número correlativo */
     th:first-child, td:first-child {
         font-weight: 500;
         color: #495057;
     }
-    
+
     .table-hover tbody tr:hover {
         background-color: rgba(0,0,0,0.02);
     }
-    
+
     .badge {
         font-size: 0.85em;
         padding: 0.5em 0.75em;
     }
-    
+
     .btn-group .btn {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
-    
-    /* Estilos para botones de filtro activos */
+
+    /* Botones de filtro activos */
     .filter-btn.active, .type-filter.active {
         background-color: #0d6efd;
         color: white;
         border-color: #0d6efd;
     }
-    
+
     .filter-btn[data-filter="activo"].active {
         background-color: #198754;
         border-color: #198754;
     }
-    
+
     .filter-btn[data-filter="inactivo"].active {
         background-color: #dc3545;
         border-color: #dc3545;
     }
-    
+
     .type-filter[data-type="natural"].active {
         background-color: #0dcaf0;
         border-color: #0dcaf0;
         color: #000;
     }
-    
+
     .type-filter[data-type="juridico"].active {
         background-color: #ffc107;
         border-color: #ffc107;
         color: #000;
     }
-    
-    /* Estilos responsivos */
+
+    /* Responsivo */
     @media (max-width: 768px) {
-        .table-responsive {
-            font-size: 0.9rem;
-        }
-        
+        .table-responsive { font-size: 0.9rem; }
+
         .btn-group .btn {
             padding: 0.2rem 0.4rem;
             font-size: 0.8rem;
         }
-        
-        .row.mb-4 {
-            flex-direction: column;
-        }
-        
-        .col-md-6 {
-            margin-bottom: 0.5rem;
-        }
-        
+
+        .row.mb-4 { flex-direction: column; }
+
+        .col-md-6 { margin-bottom: 0.5rem; }
+
         .btn-group {
             flex-wrap: wrap;
             margin-bottom: 0.25rem;
         }
-        
+
         .ms-2 {
             margin-left: 0 !important;
             margin-top: 0.25rem;
