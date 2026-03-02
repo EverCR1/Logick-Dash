@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Iniciar Sesión - Logickem')
+@section('title', 'Logickem - Iniciar Sesión')
 
 @section('content')
 <div class="container">
