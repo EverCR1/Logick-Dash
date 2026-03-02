@@ -9,6 +9,42 @@
 
 @section('content')
 <div class="container-fluid">
+
+    {{-- Estadísticas --}}
+    @if(!empty($estadisticas))
+    <div class="row mb-4">
+        @php
+            $stats = [
+                ['label' => 'Ventas Hoy',    'icon' => 'shopping-cart',  'color' => 'primary', 'total' => $estadisticas['totales']['hoy']['total']    ?? 0, 'count' => $estadisticas['totales']['hoy']['ventas']    ?? 0, 'suffix' => 'ventas'],
+                ['label' => 'Esta Semana',   'icon' => 'calendar-week',  'color' => 'success', 'total' => $estadisticas['totales']['semana']['total']  ?? 0, 'count' => $estadisticas['totales']['semana']['ventas']  ?? 0, 'suffix' => 'ventas'],
+                ['label' => 'Este Mes',      'icon' => 'calendar-alt',   'color' => 'warning', 'total' => $estadisticas['totales']['mes']['total']     ?? 0, 'count' => $estadisticas['totales']['mes']['ventas']     ?? 0, 'suffix' => 'ventas'],
+                ['label' => 'Pendientes',    'icon' => 'clock',          'color' => 'info',    'total' => null,                                                'count' => $estadisticas['por_tipo']['pendiente']['cantidad'] ?? 0, 'suffix' => 'pendientes'],
+            ];
+        @endphp
+        @foreach($stats as $stat)
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-{{ $stat['color'] }} bg-opacity-10 rounded-circle p-3 me-3 flex-shrink-0">
+                        <i class="fas fa-{{ $stat['icon'] }} text-{{ $stat['color'] }} fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">{{ $stat['label'] }}</small>
+                        @if($stat['total'] !== null)
+                            <h5 class="mb-0 fw-bold">Q {{ number_format($stat['total'], 2) }}</h5>
+                            <small class="text-muted">{{ $stat['count'] }} {{ $stat['suffix'] }}</small>
+                        @else
+                            <h5 class="mb-0 fw-bold">{{ $stat['count'] }}</h5>
+                            <small class="text-muted">{{ $stat['suffix'] }}</small>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">
@@ -23,185 +59,133 @@
                 </a>
             </div>
         </div>
-        
-        <!-- Estadísticas -->
-        @if(!empty($estadisticas))
-        <div class="card-body border-bottom bg-light">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-primary rounded-circle p-3 me-3">
-                            <i class="fas fa-shopping-cart text-white"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Ventas Hoy</small>
-                            <h4 class="mb-0">Q {{ number_format($estadisticas['totales']['hoy']['total'] ?? 0, 2) }}</h4>
-                            <small>{{ $estadisticas['totales']['hoy']['ventas'] ?? 0 }} ventas</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-success rounded-circle p-3 me-3">
-                            <i class="fas fa-calendar-week text-white"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Esta Semana</small>
-                            <h4 class="mb-0">Q {{ number_format($estadisticas['totales']['semana']['total'] ?? 0, 2) }}</h4>
-                            <small>{{ $estadisticas['totales']['semana']['ventas'] ?? 0 }} ventas</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-warning rounded-circle p-3 me-3">
-                            <i class="fas fa-calendar-alt text-white"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Este Mes</small>
-                            <h4 class="mb-0">Q {{ number_format($estadisticas['totales']['mes']['total'] ?? 0, 2) }}</h4>
-                            <small>{{ $estadisticas['totales']['mes']['ventas'] ?? 0 }} ventas</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-info rounded-circle p-3 me-3">
-                            <i class="fas fa-clock text-white"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Pendientes</small>
-                            <h4 class="mb-0">{{ $estadisticas['por_tipo']['pendiente']['cantidad'] ?? 0 }}</h4>
-                            <small>Ventas pendientes</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
 
         <div class="card-body">
 
-            <!-- Filtros y búsqueda en tiempo real -->
-            <div class="row mb-4">
-                <div class="col-md-7">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
-                            Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="completada">
-                            Completadas
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm filter-btn" data-filter="pendiente">
-                            Pendientes
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="cancelada">
-                            Canceladas
-                        </button>
-                    </div>
-                    
-                    <div class="btn-group ms-2" role="group">
-                        <button type="button" class="btn btn-outline-info btn-sm filter-pago-btn" data-pago="todos">
-                            Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm filter-pago-btn" data-pago="efectivo">
-                            Efectivo
-                        </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm filter-pago-btn" data-pago="tarjeta">
-                            Tarjeta
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-pago-btn" data-pago="transferencia">
-                            Transferencia
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm filter-pago-btn" data-pago="mixto">
-                            Mixto
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-5">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Buscar por número, referencia, cliente, NIT...">
-                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Filtros adicionales -->
+            {{-- Fila 1: Estado y método de pago --}}
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+
+                        {{-- Estado --}}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">Todos</button>
+                            <button class="btn btn-outline-success  btn-sm filter-btn" data-filter="completada">Completadas</button>
+                            <button class="btn btn-outline-warning  btn-sm filter-btn" data-filter="pendiente">Pendientes</button>
+                            <button class="btn btn-outline-danger   btn-sm filter-btn" data-filter="cancelada">Canceladas</button>
+                        </div>
+
+                        {{-- Método de pago --}}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary btn-sm filter-pago-btn active" data-pago="todos">Todo pago</button>
+                            <button class="btn btn-outline-success  btn-sm filter-pago-btn" data-pago="efectivo">Efectivo</button>
+                            <button class="btn btn-outline-info     btn-sm filter-pago-btn" data-pago="tarjeta">Tarjeta</button>
+                            <button class="btn btn-outline-primary  btn-sm filter-pago-btn" data-pago="transferencia">Transferencia</button>
+                            <button class="btn btn-outline-warning  btn-sm filter-pago-btn" data-pago="mixto">Mixto</button>
+                        </div>
+
+                        {{-- Ordenamiento --}}
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-calendar me-1"></i> Rango de fechas
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    id="sortDropdownBtn" data-bs-toggle="dropdown">
+                                <i class="fas fa-sort me-1"></i><span id="sortLabel">Más recientes</span>
                             </button>
-                            <div class="dropdown-menu p-3" style="min-width: 300px;">
-                                <div class="mb-3">
-                                    <label class="form-label">Fecha desde</label>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item sort-option active" href="#" data-sort="fecha_desc">Más recientes</a></li>
+                                <li><a class="dropdown-item sort-option"        href="#" data-sort="fecha_asc">Más antiguos</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_desc">Mayor monto</a></li>
+                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_asc">Menor monto</a></li>
+                            </ul>
+                        </div>
+
+                        {{-- Rango de fechas --}}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    id="fechaDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="fas fa-calendar me-1"></i> Fechas
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width:280px;">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Desde</label>
                                     <input type="date" class="form-control form-control-sm" id="fechaDesde">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Fecha hasta</label>
+                                    <label class="form-label form-label-sm">Hasta</label>
                                     <input type="date" class="form-control form-control-sm" id="fechaHasta">
                                 </div>
-                                <button class="btn btn-sm btn-primary w-100" id="aplicarRangoFechas">Aplicar</button>
+                                <button class="btn btn-sm btn-primary w-100" id="btnAplicarFechas">
+                                    <i class="fas fa-filter me-1"></i>Aplicar rango
+                                </button>
                             </div>
                         </div>
-                        
+
+                        {{-- Rango de montos --}}
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-dollar-sign me-1"></i> Rango de montos
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    id="montoDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="fas fa-dollar-sign me-1"></i> Monto
                             </button>
-                            <div class="dropdown-menu p-3" style="min-width: 280px;">
-                                <div class="mb-3">
-                                    <label class="form-label">Monto mínimo</label>
+                            <div class="dropdown-menu p-3" style="min-width:260px;">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Monto mínimo</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text">Q</span>
                                         <input type="number" class="form-control" id="montoMin" min="0" step="0.01" placeholder="0.00">
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Monto máximo</label>
+                                    <label class="form-label form-label-sm">Monto máximo</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text">Q</span>
                                         <input type="number" class="form-control" id="montoMax" min="0" step="0.01" placeholder="9999.99">
                                     </div>
                                 </div>
-                                <button class="btn btn-sm btn-primary w-100" id="aplicarRangoMontos">Aplicar</button>
+                                <button class="btn btn-sm btn-primary w-100" id="btnAplicarMonto">
+                                    <i class="fas fa-filter me-1"></i>Aplicar rango
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-sort me-1"></i> Ordenar por
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="fecha_desc">Más recientes</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="fecha_asc">Más antiguos</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_desc">Mayor monto</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="total_asc">Menor monto</a></li>
-                            </ul>
-                        </div>
-                        
-                        <button class="btn btn-sm btn-info" id="btnLimpiarFiltros" title="Limpiar todos los filtros">
+
+                        {{-- Limpiar --}}
+                        <button class="btn btn-sm btn-outline-danger" id="btnLimpiarFiltros">
                             <i class="fas fa-undo me-1"></i> Limpiar filtros
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- Fila 2: Búsqueda --}}
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput"
+                               placeholder="Buscar por N° venta, cliente, NIT, descripción...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
+            {{-- Datos iniciales PHP --}}
             @php
-                $ventasData = $ventas['data'] ?? [];
+                $ventasData  = $ventas['data']  ?? [];
                 $ventasLinks = $ventas['links'] ?? [];
-                $ventasMeta = $ventas['meta'] ?? [];
+                $ventasMeta  = [
+                    'total' => $ventas['total'] ?? 0,
+                    'from'  => $ventas['from']  ?? 0,
+                    'to'    => $ventas['to']    ?? 0,
+                ];
             @endphp
 
-            @if(empty($ventasData))
-                <div class="text-center py-5">
+            {{-- Tabla siempre en el DOM --}}
+            <div id="tabla-container">
+
+                <div id="empty-state" class="text-center py-5"
+                     style="{{ empty($ventasData) ? '' : 'display:none;' }}">
                     <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">No hay ventas registradas</h5>
                     <p class="text-muted">Comienza registrando tu primera venta</p>
@@ -209,160 +193,109 @@
                         <i class="fas fa-plus me-2"></i> Crear Primera Venta
                     </a>
                 </div>
-            @else
-                <div class="table-responsive">
+
+                <div class="table-responsive" id="table-wrapper"
+                     style="{{ empty($ventasData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="ventasTable">
                         <thead class="bg-primary text-white">
                             <tr>
-                                <th style="width: 100px;">Fecha</th>
+                                <th>Fecha</th>
                                 <th>N° Venta</th>
                                 <th>Cliente</th>
                                 <th>Items</th>
-                                <th>Método Pago</th>
+                                <th>Método</th>
                                 <th>Subtotal</th>
                                 <th>Descuento</th>
                                 <th>Total</th>
                                 <th>Estado</th>
-                                <th style="width: 120px;">Acciones</th>
+                                <th style="width:100px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($ventasData as $venta)
                             @php
-                                $createdAt = \Carbon\Carbon::parse($venta['created_at'] ?? now())->timezone('America/Guatemala');
-                                $numItems = count($venta['detalles'] ?? []);
-                                
-                                // Determinar color de estado
-                                $estado = $venta['estado'] ?? 'pendiente';
-                                $estadoColor = 'warning';
-                                if ($estado == 'completada') {
-                                    $estadoColor = 'success';
-                                } elseif ($estado == 'cancelada') {
-                                    $estadoColor = 'danger';
-                                }
-                                
-                                // Determinar color de método de pago
-                                $metodo = $venta['metodo_pago'] ?? 'efectivo';
-                                $metodoColor = 'warning';
-                                if ($metodo == 'efectivo') {
-                                    $metodoColor = 'success';
-                                } elseif ($metodo == 'tarjeta') {
-                                    $metodoColor = 'info';
-                                } elseif ($metodo == 'transferencia') {
-                                    $metodoColor = 'primary';
-                                } elseif ($metodo == 'mixto') {
-                                    $metodoColor = 'secondary';
-                                }
-                                
-                                // Preparar datos para búsqueda
-                                $clienteNombre = $venta['cliente']['nombre'] ?? '';
-                                $clienteNit = $venta['cliente']['nit'] ?? '';
-                                $itemsTexto = '';
-                                if (!empty($venta['detalles'])) {
-                                    $itemsTexto = implode(' ', array_column($venta['detalles'], 'descripcion'));
-                                }
-                                $searchText = strtolower(
-                                    ($venta['numero_venta'] ?? '') . ' ' . 
-                                    $clienteNombre . ' ' . 
-                                    $clienteNit . ' ' . 
-                                    $itemsTexto . ' ' . 
-                                    ($venta['id'] ?? '')
-                                );
+                                $createdAt  = \Carbon\Carbon::parse($venta['created_at'] ?? now())->timezone('America/Guatemala');
+                                $estado     = $venta['estado']      ?? 'pendiente';
+                                $metodo     = $venta['metodo_pago'] ?? 'efectivo';
+                                $numItems   = count($venta['detalles'] ?? []);
+                                $estadoColor = ['completada' => 'success', 'cancelada' => 'danger', 'pendiente' => 'warning'][$estado] ?? 'secondary';
+                                $metodoColor = ['efectivo' => 'success', 'tarjeta' => 'info', 'transferencia' => 'primary', 'mixto' => 'secondary'][$metodo] ?? 'warning';
+                                $metodoIcon  = ['efectivo' => 'money-bill', 'tarjeta' => 'credit-card', 'transferencia' => 'exchange-alt', 'mixto' => 'coins'][$metodo] ?? 'money-bill';
                             @endphp
-                            <tr data-estado="{{ $estado }}"
-                                data-metodo-pago="{{ $metodo }}"
-                                data-fecha="{{ $venta['created_at'] ?? '' }}"
-                                data-total="{{ $venta['total'] ?? 0 }}"
-                                data-cliente="{{ strtolower($clienteNombre) }}"
-                                data-search="{{ $searchText }}">
+                            <tr>
                                 <td>
-                                    <small class="d-block">{{ $createdAt->format('d/m/Y') }}</small>
+                                    <small class="fw-semibold d-block">{{ $createdAt->format('d/m/Y') }}</small>
                                     <small class="text-muted">{{ $createdAt->format('h:i A') }}</small>
                                 </td>
                                 <td>
                                     <strong>{{ $venta['numero_venta'] ?? 'SIN-NUM' }}</strong>
-                                    <br>
-                                    <small class="text-muted">ID: {{ $venta['id'] }}</small>
+                                    <small class="text-muted d-block">ID: {{ $venta['id'] }}</small>
                                 </td>
                                 <td>
-                                    {{ $clienteNombre ?: 'Cliente no especificado' }}
-                                    @if(!empty($clienteNit))
-                                        <br>
-                                        <small class="text-muted">NIT: {{ $clienteNit }}</small>
+                                    {{ $venta['cliente']['nombre'] ?? 'Sin cliente' }}
+                                    @if(!empty($venta['cliente']['nit']))
+                                        <small class="text-muted d-block">NIT: {{ $venta['cliente']['nit'] }}</small>
                                     @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-info">
-                                        {{ $numItems }} {{ $numItems == 1 ? 'item' : 'items' }}
+                                        {{ $numItems }} {{ $numItems === 1 ? 'item' : 'items' }}
                                     </span>
                                     @if($numItems > 0)
-                                        <button type="button" 
-                                                class="btn btn-sm btn-link p-0 ms-1" 
-                                                data-bs-toggle="popover" 
-                                                data-bs-html="true"
-                                                data-bs-trigger="hover"
-                                                title="Items de la venta"
-                                                data-bs-content="
-                                                    <ul class='list-unstyled mb-0'>
-                                                        @foreach(array_slice($venta['detalles'] ?? [], 0, 3) as $detalle)
-                                                            <li><small>• {{ $detalle['cantidad'] }}x {{ Str::limit($detalle['descripcion'], 25) }}</small></li>
-                                                        @endforeach
-                                                        @if($numItems > 3)
-                                                            <li><small class='text-muted'>... y {{ $numItems - 3 }} más</small></li>
-                                                        @endif
-                                                    </ul>
-                                                ">
+                                        <button type="button" class="btn btn-sm btn-link p-0 ms-1"
+                                                data-bs-toggle="popover" data-bs-html="true"
+                                                data-bs-trigger="hover" title="Items"
+                                                @php
+                                                    $popHtml = '<ul class=\'list-unstyled mb-0\'>';
+                                                    foreach (array_slice($venta['detalles'] ?? [], 0, 3) as $d) {
+                                                        $popHtml .= '<li><small>• ' . ($d['cantidad'] ?? 1) . 'x ' . Str::limit($d['descripcion'] ?? '', 25) . '</small></li>';
+                                                    }
+                                                    if ($numItems > 3) {
+                                                        $popHtml .= '<li><small class=\'text-muted\'>... y ' . ($numItems - 3) . ' más</small></li>';
+                                                    }
+                                                    $popHtml .= '</ul>';
+                                                @endphp
+
+                                                {{-- luego en el botón: --}}
+                                                data-bs-content="{{ htmlspecialchars($popHtml, ENT_QUOTES) }}"
                                             <i class="fas fa-info-circle text-muted"></i>
                                         </button>
                                     @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $metodoColor }}">
-                                        <i class="fas fa-{{ $metodo == 'efectivo' ? 'money-bill' : ($metodo == 'tarjeta' ? 'credit-card' : ($metodo == 'transferencia' ? 'exchange-alt' : 'coins')) }} me-1"></i>
-                                        {{ ucfirst($metodo) }}
+                                        <i class="fas fa-{{ $metodoIcon }} me-1"></i>{{ ucfirst($metodo) }}
                                     </span>
                                 </td>
+                                <td>Q{{ number_format($venta['subtotal'] ?? 0, 2) }}</td>
                                 <td>
-                                    Q{{ number_format($venta['subtotal'] ?? 0, 2) }}
-                                </td>
-                                <td>
-                                    @if(!empty($venta['descuento_total']) && $venta['descuento_total'] > 0)
+                                    @if(($venta['descuento_total'] ?? 0) > 0)
                                         <span class="text-danger">
-                                            <i class="fas fa-tag me-1"></i>
-                                            Q{{ number_format($venta['descuento_total'], 2) }}
+                                            <i class="fas fa-tag me-1"></i>Q{{ number_format($venta['descuento_total'], 2) }}
                                         </span>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td>
-                                    <strong class="text-primary">
-                                        Q{{ number_format($venta['total'] ?? 0, 2) }}
-                                    </strong>
-                                </td>
+                                <td><strong class="text-primary">Q{{ number_format($venta['total'] ?? 0, 2) }}</strong></td>
                                 <td>
                                     <span class="badge bg-{{ $estadoColor }}">
-                                        <i class="fas fa-{{ $estado == 'completada' ? 'check-circle' : ($estado == 'pendiente' ? 'clock' : 'times-circle') }} me-1"></i>
+                                        <i class="fas fa-{{ $estado === 'completada' ? 'check-circle' : ($estado === 'pendiente' ? 'clock' : 'times-circle') }} me-1"></i>
                                         {{ ucfirst($estado) }}
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('ventas.show', $venta['id'] ?? '#') }}" 
-                                           class="btn btn-sm btn-info" 
-                                           title="Ver detalles">
+                                        <a href="{{ route('ventas.show', $venta['id']) }}"
+                                           class="btn btn-sm btn-info" title="Ver detalles">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        
-                                        @if(($venta['estado'] ?? 'completada') !== 'cancelada')
-                                            <form action="{{ route('ventas.cancelar', $venta['id'] ?? '#') }}" 
-                                                  method="POST" 
-                                                  class="d-inline" 
-                                                  onsubmit="return confirm('¿Estás seguro de cancelar esta venta?')">
+                                        @if($estado !== 'cancelada')
+                                            <form action="{{ route('ventas.cancelar', $venta['id']) }}" method="POST"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('¿Cancelar esta venta?')">
                                                 @csrf
-                                                <button type="submit" 
-                                                        class="btn btn-sm btn-danger" 
-                                                        title="Cancelar venta">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Cancelar">
                                                     <i class="fas fa-ban"></i>
                                                 </button>
                                             </form>
@@ -375,35 +308,35 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
-                @if(!empty($ventasLinks) && count($ventasLinks) > 0)
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        @if(!empty($ventasMeta))
-                            Mostrando 
-                            {{ $ventasMeta['from'] ?? 1 }} - 
-                            {{ $ventasMeta['to'] ?? count($ventasData) }} de 
-                            {{ $ventasMeta['total'] ?? count($ventasData) }} ventas
+                {{-- Contador y paginación --}}
+                <div class="d-flex justify-content-between align-items-center mt-3"
+                     id="paginacion-container"
+                     style="{{ empty($ventasData) ? 'display:none;' : '' }}">
+                    <div class="text-muted" id="contador-wrap">
+                        @if(($ventasMeta['total'] ?? 0) > 0)
+                            Mostrando {{ $ventasMeta['from'] }} - {{ $ventasMeta['to'] }} de
+                            <strong>{{ $ventasMeta['total'] }}</strong> ventas
                         @else
                             Mostrando {{ count($ventasData) }} ventas
                         @endif
                     </div>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination mb-0">
-                            @foreach($ventasLinks as $link)
-                                @if(is_array($link))
-                                    <li class="page-item {{ $link['active'] ?? false ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
-                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">
-                                            {!! $link['label'] ?? '' !!}
-                                        </a>
+                    <nav>
+                        <div id="paginacion-wrap">
+                            <ul class="pagination mb-0">
+                                @foreach($ventasLinks as $link)
+                                    @if(is_array($link))
+                                    <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">{!! $link['label'] ?? '' !!}</a>
                                     </li>
-                                @endif
-                            @endforeach
-                        </ul>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                     </nav>
                 </div>
-                @endif
-            @endif
+
+            </div>{{-- fin #tabla-container --}}
+
         </div>
     </div>
 </div>
@@ -411,263 +344,351 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    let currentEstadoFilter = 'todos';
-    let currentMetodoPagoFilter = 'todos';
-    let currentSort = 'fecha_desc';
-    let currentSearch = '';
-    let fechaDesde = null;
-    let fechaHasta = null;
-    let montoMin = null;
-    let montoMax = null;
-    
-    // Función para parsear fecha
-    function parseFecha(fechaStr) {
-        if (!fechaStr) return null;
-        return new Date(fechaStr);
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Estado actual de todos los filtros activos
+    let estado      = 'todos';
+    let metodoPago  = 'todos';
+    let sort        = 'fecha_desc';
+    let search      = '';
+    let fechaDesde  = '';
+    let fechaHasta  = '';
+    let montoMin    = '';
+    let montoMax    = '';
+    let searchTimeout = null;
+
+    // Referencias al DOM reutilizadas en múltiples funciones
+    const getTabla       = () => document.querySelector('#ventasTable tbody');
+    const paginacionWrap = document.getElementById('paginacion-wrap');
+    const contadorWrap   = document.getElementById('contador-wrap');
+    const tableWrapper   = document.getElementById('table-wrapper');
+    const paginacionCont = document.getElementById('paginacion-container');
+    const emptyState     = document.getElementById('empty-state');
+
+    // Muestra la tabla y oculta el estado vacío
+    function mostrarTabla() {
+        if (tableWrapper)   tableWrapper.style.display   = '';
+        if (paginacionCont) paginacionCont.style.display = '';
+        if (emptyState)     emptyState.style.display     = 'none';
     }
-    
-    // Función para aplicar todos los filtros
-    function aplicarFiltros() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-        currentSearch = searchText;
-        
-        const tbody = document.querySelector('#ventasTable tbody');
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Excluir fila de no resultados si existe
-        rows = rows.filter(row => row.id !== 'no-results-row');
-        
-        let visibleRows = [];
-        
-        rows.forEach(row => {
-            const estado = row.dataset.estado;
-            const metodoPago = row.dataset.metodoPago;
-            const fecha = parseFecha(row.dataset.fecha);
-            const total = parseFloat(row.dataset.total) || 0;
-            const searchData = row.dataset.search || '';
-            
-            // Filtro de estado
-            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
-            
-            // Filtro de método de pago
-            const metodoMatch = currentMetodoPagoFilter === 'todos' || metodoPago === currentMetodoPagoFilter;
-            
-            // Filtro de rango de fechas
-            let fechaMatch = true;
-            if (fechaDesde && fecha) {
-                fechaMatch = fecha >= fechaDesde;
-            }
-            if (fechaMatch && fechaHasta && fecha) {
-                const fechaHastaFin = new Date(fechaHasta);
-                fechaHastaFin.setHours(23, 59, 59, 999);
-                fechaMatch = fecha <= fechaHastaFin;
-            }
-            
-            // Filtro de rango de montos
-            let montoMatch = true;
-            if (montoMin !== null) {
-                montoMatch = total >= montoMin;
-            }
-            if (montoMatch && montoMax !== null) {
-                montoMatch = total <= montoMax;
-            }
-            
-            // Filtro de búsqueda
-            const searchMatch = searchText === '' || searchData.includes(searchText);
-            
-            // Mostrar u ocultar fila
-            if (estadoMatch && metodoMatch && fechaMatch && montoMatch && searchMatch) {
-                row.style.display = '';
-                visibleRows.push(row);
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Aplicar ordenamiento
-        visibleRows = ordenarFilas(visibleRows, currentSort);
-        
-        // Reordenar la tabla
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
+
+    // Muestra el estado vacío con mensaje y botón de limpiar
+    function mostrarEmptyState(msg) {
+        if (tableWrapper)   tableWrapper.style.display   = 'none';
+        if (paginacionCont) paginacionCont.style.display = 'none';
+        if (emptyState) {
+            emptyState.style.display = '';
+            emptyState.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">${msg}</h5>
+                <p class="text-muted mb-3">Intenta con otros términos o filtros</p>
+                <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                    <i class="fas fa-undo me-2"></i>Limpiar filtros
+                </button>`;
         }
-        
-        visibleRows.forEach(row => tbody.appendChild(row));
-        hiddenRows.forEach(row => tbody.appendChild(row));
-        
-        // Mostrar mensaje si no hay resultados
-        mostrarMensajeNoResultados(visibleRows.length, rows.length);
     }
-    
-    // Función para ordenar filas
-    function ordenarFilas(rows, sortType) {
-        return rows.sort((a, b) => {
-            switch(sortType) {
-                case 'fecha_desc':
-                    const fechaA = parseFecha(a.dataset.fecha) || new Date(0);
-                    const fechaB = parseFecha(b.dataset.fecha) || new Date(0);
-                    return fechaB - fechaA;
-                    
-                case 'fecha_asc':
-                    const fechaC = parseFecha(a.dataset.fecha) || new Date(0);
-                    const fechaD = parseFecha(b.dataset.fecha) || new Date(0);
-                    return fechaC - fechaD;
-                    
-                case 'total_desc':
-                    return (parseFloat(b.dataset.total) || 0) - (parseFloat(a.dataset.total) || 0);
-                    
-                case 'total_asc':
-                    return (parseFloat(a.dataset.total) || 0) - (parseFloat(b.dataset.total) || 0);
-                    
-                default:
-                    return 0;
-            }
+
+    // Envía la petición AJAX con todos los filtros activos al endpoint de filtrado
+    function fetchFiltrado(page = 1) {
+        mostrarLoader();
+
+        const params = new URLSearchParams({
+            estado, metodo_pago: metodoPago, sort, search, page,
+            fecha_inicio: fechaDesde, fecha_fin: fechaHasta,
+            monto_min: montoMin, monto_max: montoMax
         });
+
+        fetch(`{{ route('ventas.filter') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) renderTabla(data.ventas);
+            else mostrarError('Error al filtrar ventas');
+        })
+        .catch(() => mostrarError('Error de conexión'));
     }
-    
-    // Función para mostrar mensaje cuando no hay resultados
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const table = document.getElementById('ventasTable');
-        const tbody = table.querySelector('tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="10" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron ventas</h5>
-                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
+
+    // Formatea una fecha ISO con timezone de Guatemala
+    function formatearFecha(isoStr) {
+        if (!isoStr) return { fecha: 'N/A', hora: '' };
+        const partes = isoStr.replace('T', ' ').split(' ');
+        const [y, m, d] = partes[0].split('-');
+        const hora = partes[1] ? partes[1].substring(0, 5) : '00:00';
+        return { fecha: `${d}/${m}/${y}`, hora };
+    }
+
+    // Convierte hora 24h a formato 12h con AM/PM
+    function hora12(hora24) {
+        if (!hora24) return '';
+        const [h, m] = hora24.split(':');
+        const hNum = parseInt(h);
+        const ampm = hNum >= 12 ? 'PM' : 'AM';
+        const h12  = hNum % 12 || 12;
+        return `${h12}:${m} ${ampm}`;
+    }
+
+    // Transforma los datos paginados de la API en filas HTML e inyecta en la tabla
+    function renderTabla(paginado) {
+        const registros = paginado.data  ?? [];
+        const links     = paginado.links ?? [];
+        const total     = paginado.total ?? 0;
+        const from      = paginado.from  ?? 0;
+        const to        = paginado.to    ?? 0;
+
+        if (registros.length === 0) {
+            mostrarEmptyState('No se encontraron ventas');
+            actualizarContador(0, 0, 0);
+            actualizarPaginacion([]);
+            return;
+        }
+
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const fmt  = val => parseFloat(val ?? 0).toLocaleString('es-GT', { minimumFractionDigits: 2 });
+
+        const estadoColor  = { completada: 'success', cancelada: 'danger',  pendiente: 'warning' };
+        const estadoIcon   = { completada: 'check-circle', cancelada: 'times-circle', pendiente: 'clock' };
+        const metodoColor  = { efectivo: 'success', tarjeta: 'info', transferencia: 'primary', mixto: 'secondary' };
+        const metodoIcon   = { efectivo: 'money-bill', tarjeta: 'credit-card', transferencia: 'exchange-alt', mixto: 'coins' };
+
+        tbody.innerHTML = '';
+
+        registros.forEach(v => {
+            const { fecha, hora } = formatearFecha(v.created_at);
+            const est    = v.estado      ?? 'pendiente';
+            const met    = v.metodo_pago ?? 'efectivo';
+            const items  = v.detalles    ?? [];
+            const nItems = items.length;
+            const showUrl   = `/ventas/${v.id}`;
+            const cancelUrl = `/ventas/${v.id}/cancelar`;
+
+            // Construye el popover de items
+            let popoverContent = '<ul class=\'list-unstyled mb-0\'>';
+            items.slice(0, 3).forEach(d => {
+                const desc = (d.descripcion ?? '').substring(0, 25);
+                popoverContent += `<li><small>• ${d.cantidad}x ${desc}</small></li>`;
+            });
+            if (nItems > 3) popoverContent += `<li><small class='text-muted'>... y ${nItems - 3} más</small></li>`;
+            popoverContent += '</ul>';
+
+            const cancelBtn = est !== 'cancelada'
+                ? `<form action="${cancelUrl}" method="POST" class="d-inline"
+                         onsubmit="return confirm('¿Cancelar esta venta?')">
+                       <input type="hidden" name="_token" value="${csrf}">
+                       <button type="submit" class="btn btn-sm btn-danger" title="Cancelar">
+                           <i class="fas fa-ban"></i>
+                       </button>
+                   </form>`
+                : '';
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td>
+                        <small class="fw-semibold d-block">${fecha}</small>
+                        <small class="text-muted">${hora12(hora)}</small>
                     </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
+                    <td>
+                        <strong>${v.numero_venta ?? 'SIN-NUM'}</strong>
+                        <small class="text-muted d-block">ID: ${v.id}</small>
+                    </td>
+                    <td>
+                        ${v.cliente?.nombre ?? 'Sin cliente'}
+                        ${v.cliente?.nit ? `<small class="text-muted d-block">NIT: ${v.cliente.nit}</small>` : ''}
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${nItems} ${nItems === 1 ? 'item' : 'items'}</span>
+                        ${nItems > 0 ? `<button type="button" class="btn btn-sm btn-link p-0 ms-1"
+                            data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover"
+                            title="Items" data-bs-content="${popoverContent.replace(/"/g, '&quot;')}">
+                            <i class="fas fa-info-circle text-muted"></i>
+                        </button>` : ''}
+                    </td>
+                    <td>
+                        <span class="badge bg-${metodoColor[met] ?? 'secondary'}">
+                            <i class="fas fa-${metodoIcon[met] ?? 'money-bill'} me-1"></i>${met.charAt(0).toUpperCase() + met.slice(1)}
+                        </span>
+                    </td>
+                    <td>Q${fmt(v.subtotal)}</td>
+                    <td>
+                        ${parseFloat(v.descuento_total ?? 0) > 0
+                            ? `<span class="text-danger"><i class="fas fa-tag me-1"></i>Q${fmt(v.descuento_total)}</span>`
+                            : '<span class="text-muted">—</span>'}
+                    </td>
+                    <td><strong class="text-primary">Q${fmt(v.total)}</strong></td>
+                    <td>
+                        <span class="badge bg-${estadoColor[est] ?? 'secondary'}">
+                            <i class="fas fa-${estadoIcon[est] ?? 'circle'} me-1"></i>${est.charAt(0).toUpperCase() + est.slice(1)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="${showUrl}" class="btn btn-sm btn-info" title="Ver">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            ${cancelBtn}
+                        </div>
+                    </td>
+                </tr>`);
+        });
+
+        // Reinicia los popovers de Bootstrap en las nuevas filas
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+            bootstrap.Popover.getOrCreateInstance(el);
+        });
+
+        actualizarContador(from, to, total);
+        actualizarPaginacion(links);
     }
-    
-    // Función para limpiar filtros
-    window.limpiarFiltros = function() {
-        currentEstadoFilter = 'todos';
-        currentMetodoPagoFilter = 'todos';
-        currentSort = 'fecha_desc';
-        fechaDesde = null;
-        fechaHasta = null;
-        montoMin = null;
-        montoMax = null;
-        
-        // Actualizar botones de estado
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'todos') {
-                btn.classList.add('active');
+
+    // Actualiza el texto del contador de resultados
+    function actualizarContador(from, to, total) {
+        if (!contadorWrap) return;
+        contadorWrap.innerHTML = total > 0
+            ? `Mostrando ${from} - ${to} de <strong>${total}</strong> ventas encontradas`
+            : 'Sin resultados';
+    }
+
+    // Renderiza los botones de paginación según los links devueltos por la API
+    function actualizarPaginacion(links) {
+        if (!paginacionWrap) return;
+        if (!links || links.length <= 3) { paginacionWrap.innerHTML = ''; return; }
+        let html = '<ul class="pagination mb-0">';
+        links.forEach(link => {
+            const active   = link.active ? 'active'   : '';
+            const disabled = !link.url   ? 'disabled' : '';
+            let pageNum = null;
+            if (link.url) {
+                const m = link.url.match(/[?&]page=(\d+)/);
+                pageNum = m ? m[1] : null;
             }
+            const click = pageNum ? `onclick="cambiarPagina(${pageNum}); return false;"` : '';
+            html += `<li class="page-item ${active} ${disabled}">
+                        <a class="page-link" href="#" ${click}>${link.label}</a>
+                     </li>`;
         });
-        
-        // Actualizar botones de método de pago
-        document.querySelectorAll('.filter-pago-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.pago === 'todos') {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Limpiar inputs
-        document.getElementById('fechaDesde').value = '';
-        document.getElementById('fechaHasta').value = '';
-        document.getElementById('montoMin').value = '';
-        document.getElementById('montoMax').value = '';
-        document.getElementById('searchInput').value = '';
-        
-        aplicarFiltros();
+        html += '</ul>';
+        paginacionWrap.innerHTML = html;
+    }
+
+    function mostrarLoader() {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr><td colspan="10" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted mt-2 mb-0">Buscando ventas...</p>
+            </td></tr>`;
+    }
+
+    function mostrarError(msg) {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr><td colspan="10" class="text-center py-4 text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>${msg}
+            </td></tr>`;
+    }
+
+    // Cambia a la página indicada manteniendo los filtros activos
+    window.cambiarPagina = function (page) {
+        fetchFiltrado(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    
-    // Eventos para filtros de estado
+
+    // Resetea todos los filtros y recarga el index original
+    window.limpiarFiltros = function () {
+        estado = 'todos'; metodoPago = 'todos'; sort = 'fecha_desc';
+        search = ''; fechaDesde = ''; fechaHasta = ''; montoMin = ''; montoMax = '';
+
+        document.getElementById('searchInput').value = '';
+        document.getElementById('fechaDesde').value  = '';
+        document.getElementById('fechaHasta').value  = '';
+        document.getElementById('montoMin').value    = '';
+        document.getElementById('montoMax').value    = '';
+
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'todos'));
+        document.querySelectorAll('.filter-pago-btn').forEach(b => b.classList.toggle('active', b.dataset.pago === 'todos'));
+        document.querySelectorAll('.sort-option').forEach(b => b.classList.toggle('active', b.dataset.sort === 'fecha_desc'));
+        document.getElementById('sortLabel').textContent = 'Más recientes';
+
+        window.location.href = "{{ route('ventas.index') }}";
+    };
+
+    // Event listeners
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentEstadoFilter = this.dataset.filter;
-            aplicarFiltros();
+            estado = this.dataset.filter;
+            fetchFiltrado();
         });
     });
-    
-    // Eventos para filtros de método de pago
+
     document.querySelectorAll('.filter-pago-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-pago-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentMetodoPagoFilter = this.dataset.pago;
-            aplicarFiltros();
+            metodoPago = this.dataset.pago;
+            fetchFiltrado();
         });
     });
-    
-    // Evento para aplicar rango de fechas
-    document.getElementById('aplicarRangoFechas').addEventListener('click', function() {
-        fechaDesde = document.getElementById('fechaDesde').value ? new Date(document.getElementById('fechaDesde').value) : null;
-        fechaHasta = document.getElementById('fechaHasta').value ? new Date(document.getElementById('fechaHasta').value) : null;
-        aplicarFiltros();
-    });
-    
-    // Evento para aplicar rango de montos
-    document.getElementById('aplicarRangoMontos').addEventListener('click', function() {
-        montoMin = document.getElementById('montoMin').value ? parseFloat(document.getElementById('montoMin').value) : null;
-        montoMax = document.getElementById('montoMax').value ? parseFloat(document.getElementById('montoMax').value) : null;
-        aplicarFiltros();
-    });
-    
-    // Eventos para ordenamiento
-    document.querySelectorAll('.sort-option').forEach(option => {
-        option.addEventListener('click', function(e) {
+
+    document.querySelectorAll('.sort-option').forEach(opt => {
+        opt.addEventListener('click', function (e) {
             e.preventDefault();
-            currentSort = this.dataset.sort;
-            aplicarFiltros();
+            document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('sortLabel').textContent = this.textContent.trim();
+            sort = this.dataset.sort;
+            fetchFiltrado();
         });
     });
-    
-    // Búsqueda en tiempo real
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(aplicarFiltros, 300);
+
+    document.getElementById('btnAplicarFechas').addEventListener('click', function () {
+        fechaDesde = document.getElementById('fechaDesde').value;
+        fechaHasta = document.getElementById('fechaHasta').value;
+        fetchFiltrado();
+        bootstrap.Dropdown.getOrCreateInstance(document.getElementById('fechaDropdownBtn')).hide();
     });
-    
-    // Botón limpiar búsqueda
-    document.getElementById('clearSearch').addEventListener('click', function() {
+
+    document.getElementById('btnAplicarMonto').addEventListener('click', function () {
+        montoMin = document.getElementById('montoMin').value;
+        montoMax = document.getElementById('montoMax').value;
+        fetchFiltrado();
+        bootstrap.Dropdown.getOrCreateInstance(document.getElementById('montoDropdownBtn')).hide();
+    });
+
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        clearTimeout(searchTimeout);
+        search = this.value;
+        searchTimeout = setTimeout(() => fetchFiltrado(), 350);
+    });
+
+    document.getElementById('clearSearch').addEventListener('click', function () {
         document.getElementById('searchInput').value = '';
-        aplicarFiltros();
+        search = '';
+        fetchFiltrado();
         document.getElementById('searchInput').focus();
     });
-    
-    // Botón limpiar todos los filtros
+
     document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
-    
-    // Inicializar botones activos
-    document.querySelector('.filter-btn[data-filter="todos"]').classList.add('active');
-    document.querySelector('.filter-pago-btn[data-pago="todos"]').classList.add('active');
-    
-    // Inicializar popovers de Bootstrap
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl)
-    });
-    
-    // Agregar tooltips a los botones
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+
+    // Inicializa los popovers del render inicial de PHP
+    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        bootstrap.Popover.getOrCreateInstance(el);
     });
 });
 </script>

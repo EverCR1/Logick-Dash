@@ -9,16 +9,17 @@
 
 @section('content')
 <div class="container-fluid">
+
     <!-- Estadísticas -->
     @if(!empty($estadisticas))
-    <div class="row mb-4">
+    <div class="row mb-4" id="estadisticas-wrap">
         <div class="col-md-3">
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title text-muted mb-1">Total Créditos</h6>
-                            <h4 class="mb-0">{{ $estadisticas['total_creditos'] ?? 0 }}</h4>
+                            <h4 class="mb-0" id="stat-total">{{ $estadisticas['total_creditos'] ?? 0 }}</h4>
                         </div>
                         <div class="bg-primary bg-opacity-10 p-3 rounded">
                             <i class="fas fa-file-invoice-dollar fa-2x text-primary"></i>
@@ -27,52 +28,49 @@
                 </div>
             </div>
         </div>
-        
         <div class="col-md-3">
             <div class="card border-success">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title text-muted mb-1">Activos</h6>
-                            <h4 class="mb-0">{{ $estadisticas['activos'] ?? 0 }}</h4>
+                            <h4 class="mb-0" id="stat-activos">{{ $estadisticas['activos'] ?? 0 }}</h4>
                         </div>
                         <div class="bg-success bg-opacity-10 p-3 rounded">
                             <i class="fas fa-clock fa-2x text-success"></i>
                         </div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-muted" id="stat-capital-activos">
                         Q{{ number_format($estadisticas['capital_pendiente_activos'] ?? 0, 2) }} pendiente
                     </small>
                 </div>
             </div>
         </div>
-        
         <div class="col-md-3">
             <div class="card border-warning">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title text-muted mb-1">Abonados</h6>
-                            <h4 class="mb-0">{{ $estadisticas['abonados'] ?? 0 }}</h4>
+                            <h4 class="mb-0" id="stat-abonados">{{ $estadisticas['abonados'] ?? 0 }}</h4>
                         </div>
                         <div class="bg-warning bg-opacity-10 p-3 rounded">
                             <i class="fas fa-money-bill-wave fa-2x text-warning"></i>
                         </div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-muted" id="stat-capital-abonados">
                         Q{{ number_format($estadisticas['capital_pendiente_abonados'] ?? 0, 2) }} pendiente
                     </small>
                 </div>
             </div>
         </div>
-        
         <div class="col-md-3">
             <div class="card border-info">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title text-muted mb-1">Recuperado</h6>
-                            <h4 class="mb-0">Q{{ number_format($estadisticas['total_recuperado'] ?? 0, 2) }}</h4>
+                            <h4 class="mb-0" id="stat-recuperado">Q{{ number_format($estadisticas['total_recuperado'] ?? 0, 2) }}</h4>
                         </div>
                         <div class="bg-info bg-opacity-10 p-3 rounded">
                             <i class="fas fa-chart-line fa-2x text-info"></i>
@@ -89,34 +87,27 @@
             <h5 class="card-title mb-0">
                 <i class="fas fa-file-invoice-dollar me-2"></i>Gestión de Créditos
             </h5>
-            <div class="d-flex gap-2">
-                <a href="{{ route('creditos.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i> Nuevo Crédito
-                </a>
-            </div>
+            <a href="{{ route('creditos.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nuevo Crédito
+            </a>
         </div>
         <div class="card-body">
-            <!-- Filtros y búsqueda en tiempo real -->
+
+            <!-- Filtros -->
             <div class="row mb-4">
                 <div class="col-md-7">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
-                            Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="activo">
-                            Activos
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm filter-btn" data-filter="abonado">
-                            Abonados
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="pagado">
-                            Pagados
-                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">Todos</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn"  data-filter="activo">Activos</button>
+                        <button type="button" class="btn btn-outline-warning btn-sm filter-btn" data-filter="abonado">Abonados</button>
+                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="pagado">Pagados</button>
                     </div>
-                    
                     <div class="btn-group ms-2" role="group">
                         <button type="button" class="btn btn-outline-info btn-sm sort-btn active" data-sort="fecha_desc">
                             <i class="fas fa-sort-amount-down me-1"></i>Más recientes
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="fecha_asc">
+                            <i class="fas fa-sort-amount-up me-1"></i>Más antiguos
                         </button>
                         <button type="button" class="btn btn-outline-info btn-sm sort-btn" data-sort="monto_desc">
                             <i class="fas fa-sort-amount-down-alt me-1"></i>Mayor monto
@@ -126,7 +117,7 @@
                 <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" 
+                        <input type="text" class="form-control" id="searchInput"
                                placeholder="Buscar por cliente, producto/servicio...">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
                             <i class="fas fa-times"></i>
@@ -139,28 +130,21 @@
             </div>
 
             @php
-                // Extraer datos de manera segura
-                $creditosData = [];
-                $creditosLinks = [];
-                $creditosMeta = [];
-                
-                if (isset($creditos['data'])) {
-                    $creditosData = $creditos['data'];
-                } elseif (isset($creditos) && is_array($creditos)) {
-                    $creditosData = $creditos;
-                }
-                
-                if (isset($creditos['links']) && is_array($creditos['links'])) {
-                    $creditosLinks = $creditos['links'];
-                }
-                
-                if (isset($creditos['meta']) && is_array($creditos['meta'])) {
-                    $creditosMeta = $creditos['meta'];
-                }
+                $creditosData  = $creditos['data']  ?? (is_array($creditos) ? $creditos : []);
+                $creditosLinks = $creditos['links'] ?? [];
+                $creditosMeta  = [
+                    'current_page' => $creditos['current_page'] ?? 1,
+                    'per_page'     => $creditos['per_page'] ?? 20,
+                    'total'        => $creditos['total'] ?? 0,
+                    'from'         => $creditos['from'] ?? 1,
+                    'to'           => $creditos['to'] ?? 0,
+                ];
             @endphp
 
-            @if(empty($creditosData))
-                <div class="text-center py-5">
+            {{-- Tabla siempre en el DOM --}}
+            <div id="tabla-container">
+
+                <div id="empty-state" class="text-center py-5" style="{{ empty($creditosData) ? '' : 'display:none;' }}">
                     <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">No hay créditos registrados</h5>
                     <p class="text-muted">Comienza agregando tu primer crédito</p>
@@ -168,8 +152,8 @@
                         <i class="fas fa-plus me-2"></i> Crear Primer Crédito
                     </a>
                 </div>
-            @else
-                <div class="table-responsive">
+
+                <div class="table-responsive" id="table-wrapper" style="{{ empty($creditosData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="creditosTable">
                         <thead class="bg-primary text-white">
                             <tr>
@@ -187,39 +171,18 @@
                         <tbody>
                             @foreach($creditosData as $credito)
                             @php
-                                $porcentajePagado = $credito['capital'] > 0 ? 
-                                    (($credito['capital'] - $credito['capital_restante']) / $credito['capital']) * 100 : 0;
-                                
-                                $estadoColors = [
-                                    'activo' => 'danger',
-                                    'abonado' => 'warning',
-                                    'pagado' => 'success'
-                                ];
-                                
-                                $estadoLabels = [
-                                    'activo' => 'Activo',
-                                    'abonado' => 'Abonado',
-                                    'pagado' => 'Pagado'
-                                ];
-
-                                // Preparar datos para búsqueda - AHORA EN ATRIBUTOS INDIVIDUALES
-                                $clienteNombre = strtolower($credito['nombre_cliente'] ?? '');
-                                $producto = strtolower($credito['producto_o_servicio_dado'] ?? '');
+                                $porcentajePagado = $credito['capital'] > 0
+                                    ? (($credito['capital'] - $credito['capital_restante']) / $credito['capital']) * 100
+                                    : 0;
+                                $estadoColors = ['activo' => 'danger', 'abonado' => 'warning', 'pagado' => 'success'];
+                                $estadoLabels = ['activo' => 'Activo', 'abonado' => 'Abonado', 'pagado' => 'Pagado'];
+                                $estadoIconos = ['activo' => 'clock', 'abonado' => 'money-bill', 'pagado' => 'check-circle'];
+                                $estado = $credito['estado'] ?? 'activo';
                             @endphp
-                            <tr data-estado="{{ $credito['estado'] ?? 'activo' }}"
-                                data-cliente="{{ $clienteNombre }}"
-                                data-producto="{{ $producto }}"
-                                data-monto="{{ $credito['capital'] ?? 0 }}"
-                                data-fecha="{{ $credito['fecha_credito'] ?? '' }}">
-                                <td>
-                                    <strong>{{ $credito['nombre_cliente'] ?? 'N/A' }}</strong>
-                                </td>
-                                <td>
-                                    <small>{{ Str::limit($credito['producto_o_servicio_dado'] ?: 'No especificado', 40) }}</small>
-                                </td>
-                                <td>
-                                    <strong>Q{{ number_format($credito['capital'] ?? 0, 2) }}</strong>
-                                </td>
+                            <tr>
+                                <td><strong>{{ $credito['nombre_cliente'] ?? 'N/A' }}</strong></td>
+                                <td><small>{{ Str::limit($credito['producto_o_servicio_dado'] ?: 'No especificado', 40) }}</small></td>
+                                <td><strong>Q{{ number_format($credito['capital'] ?? 0, 2) }}</strong></td>
                                 <td>
                                     @if(($credito['capital_restante'] ?? 0) > 0)
                                         <strong class="text-danger">Q{{ number_format($credito['capital_restante'], 2) }}</strong>
@@ -230,33 +193,27 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="progress flex-grow-1" style="height: 8px;">
-                                            <div class="progress-bar bg-{{ $estadoColors[$credito['estado']] ?? 'info' }}" 
-                                                 role="progressbar" 
-                                                 style="width: {{ $porcentajePagado }}%"
-                                                 aria-valuenow="{{ $porcentajePagado }}" 
-                                                 aria-valuemin="0" 
-                                                 aria-valuemax="100">
+                                            <div class="progress-bar bg-{{ $estadoColors[$estado] ?? 'info' }}"
+                                                 role="progressbar"
+                                                 style="width: {{ $porcentajePagado }}%">
                                             </div>
                                         </div>
                                         <small class="ms-2">{{ number_format($porcentajePagado, 0) }}%</small>
                                     </div>
                                 </td>
-                                <td>
-                                    <small>{{ isset($credito['fecha_credito']) ? \Carbon\Carbon::parse($credito['fecha_credito'])->format('d/m/Y') : 'N/A' }}</small>
-                                </td>
+                                <td><small>{{ isset($credito['fecha_credito']) ? \Carbon\Carbon::parse($credito['fecha_credito'])->format('d/m/Y') : 'N/A' }}</small></td>
                                 <td>
                                     @if($credito['fecha_ultimo_pago'] ?? null)
                                         <small>{{ \Carbon\Carbon::parse($credito['fecha_ultimo_pago'])->format('d/m/Y') }}</small>
-                                        <br>
-                                        <small class="text-muted">Q{{ number_format($credito['ultima_cantidad_pagada'] ?? 0, 2) }}</small>
+                                        <br><small class="text-muted">Q{{ number_format($credito['ultima_cantidad_pagada'] ?? 0, 2) }}</small>
                                     @else
                                         <span class="badge bg-light text-dark">Sin pagos</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $estadoColors[$credito['estado']] ?? 'secondary' }} p-2">
-                                        <i class="fas fa-{{ $credito['estado'] == 'activo' ? 'clock' : ($credito['estado'] == 'abonado' ? 'money-bill' : 'check-circle') }} me-1"></i>
-                                        {{ $estadoLabels[$credito['estado']] ?? $credito['estado'] }}
+                                    <span class="badge bg-{{ $estadoColors[$estado] ?? 'secondary' }} p-2">
+                                        <i class="fas fa-{{ $estadoIconos[$estado] ?? 'circle' }} me-1"></i>
+                                        {{ $estadoLabels[$estado] ?? $estado }}
                                     </span>
                                 </td>
                                 <td>
@@ -268,7 +225,7 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         @if(($credito['capital_restante'] ?? 0) > 0)
-                                        <button type="button" class="btn btn-sm btn-success btn-registrar-pago" 
+                                        <button type="button" class="btn btn-sm btn-success btn-registrar-pago"
                                                 data-credito-id="{{ $credito['id'] }}"
                                                 data-cliente="{{ $credito['nombre_cliente'] ?? 'N/A' }}"
                                                 data-capital-restante="{{ $credito['capital_restante'] ?? 0 }}"
@@ -280,11 +237,10 @@
                                             <i class="fas fa-check"></i>
                                         </button>
                                         @endif
-                                        <form action="{{ route('creditos.change-status', $credito['id'] ?? '#') }}" method="POST" class="d-inline">
+                                        <form action="{{ route('creditos.change-status', $credito['id'] ?? '#') }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('¿Cambiar el estado de este crédito?')">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-{{ $estadoColors[$credito['estado']] ?? 'secondary' }}" 
-                                                    title="Cambiar estado"
-                                                    onclick="return confirm('¿Estás seguro de cambiar el estado de este crédito?')">
+                                            <button type="submit" class="btn btn-sm btn-{{ $estadoColors[$estado] ?? 'secondary' }}" title="Cambiar estado">
                                                 <i class="fas fa-sync-alt"></i>
                                             </button>
                                         </form>
@@ -296,265 +252,376 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
-                @if(!empty($creditosLinks) && count($creditosLinks) > 0)
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        @if(!empty($creditosMeta))
-                            Mostrando 
-                            {{ $creditosMeta['from'] ?? 1 }} - 
-                            {{ $creditosMeta['to'] ?? count($creditosData) }} de 
-                            {{ $creditosMeta['total'] ?? count($creditosData) }} créditos
+                <!-- Contador y paginación -->
+                <div class="d-flex justify-content-between align-items-center mt-3"
+                     id="paginacion-container"
+                     style="{{ empty($creditosData) ? 'display:none;' : '' }}">
+                    <div class="text-muted" id="contador-wrap">
+                        @if(($creditosMeta['total'] ?? 0) > 0)
+                            Mostrando {{ $creditosMeta['from'] }} - {{ $creditosMeta['to'] }} de
+                            <strong>{{ $creditosMeta['total'] }}</strong> créditos
                         @else
                             Mostrando {{ count($creditosData) }} créditos
                         @endif
                     </div>
                     <nav aria-label="Page navigation">
-                        <ul class="pagination mb-0">
-                            @foreach($creditosLinks as $link)
-                                @if(is_array($link))
-                                    <li class="page-item {{ $link['active'] ?? false ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
-                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">
-                                            {!! $link['label'] ?? '' !!}
-                                        </a>
-                                    </li>
-                                @endif
-                            @endforeach
-                        </ul>
+                        <div id="paginacion-wrap">
+                            <ul class="pagination mb-0">
+                                @foreach($creditosLinks as $link)
+                                    @if(is_array($link))
+                                        <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                            <a class="page-link" href="{{ $link['url'] ?? '#' }}">{!! $link['label'] ?? '' !!}</a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                     </nav>
                 </div>
-                @endif
-            @endif
+
+            </div>{{-- fin #tabla-container --}}
+
         </div>
     </div>
 </div>
 
-<!-- Modal para registrar pago (dinámico) -->
 @include('creditos.partials._modal_registrar_pago_dinamico')
 @endsection
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // ===== CONFIGURACIÓN DE FILTROS Y BÚSQUEDA =====
-    let currentFilter = 'todos';
-    let currentSort = 'fecha_desc';
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Referencias DOM ───────────────────────────────────────────────
+    const getTabla       = () => document.querySelector('#creditosTable tbody');
+    const paginacionWrap = document.getElementById('paginacion-wrap');
+    const contadorWrap   = document.getElementById('contador-wrap');
+    const tableWrapper   = document.getElementById('table-wrapper');
+    const paginacionCont = document.getElementById('paginacion-container');
+    const emptyState     = document.getElementById('empty-state');
+
+    // ── Estado de filtros ─────────────────────────────────────────────
+    let currentEstado = 'todos';
+    let currentSort   = 'fecha_desc';
     let currentSearch = '';
-    
-    // Función para formatear fecha para comparación
-    function parseFecha(fechaStr) {
-        if (!fechaStr) return new Date(0);
-        return new Date(fechaStr);
+    let searchTimeout = null;
+
+    // ── Mostrar / ocultar tabla ───────────────────────────────────────
+    function mostrarTabla() {
+        if (tableWrapper)   tableWrapper.style.display   = '';
+        if (paginacionCont) paginacionCont.style.display = '';
+        if (emptyState)     emptyState.style.display     = 'none';
     }
-    
-    // Función para ordenar filas
-    function ordenarFilas(rows, sortType) {
-        return rows.sort((a, b) => {
-            switch(sortType) {
-                case 'fecha_desc':
-                    const fechaA = parseFecha(a.dataset.fecha);
-                    const fechaB = parseFecha(b.dataset.fecha);
-                    return fechaB - fechaA;
-                    
-                case 'monto_desc':
-                    const montoA = parseFloat(a.dataset.monto) || 0;
-                    const montoB = parseFloat(b.dataset.monto) || 0;
-                    return montoB - montoA;
-                    
-                default:
-                    return 0;
-            }
+
+    function mostrarEmptyState(mensaje) {
+        if (tableWrapper)   tableWrapper.style.display   = 'none';
+        if (paginacionCont) paginacionCont.style.display = 'none';
+        if (emptyState) {
+            emptyState.style.display = '';
+            emptyState.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">${mensaje}</h5>
+                <p class="text-muted mb-3">Intenta con otros términos o filtros</p>
+                <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                    <i class="fas fa-undo me-2"></i>Limpiar filtros
+                </button>`;
+        }
+    }
+
+    // ── Detectar filtros activos ──────────────────────────────────────
+    function hayFiltrosActivos() {
+        return currentEstado !== 'todos' || currentSearch.trim() !== '' || currentSort !== 'fecha_desc';
+    }
+
+    // ── Fetch al endpoint /creditos/filter ────────────────────────────
+    function fetchFiltrado(page = 1) {
+        if (!hayFiltrosActivos()) {
+            window.location.href = "{{ route('creditos.index') }}";
+            return;
+        }
+
+        mostrarLoader();
+
+        const params = new URLSearchParams({
+            search: currentSearch,
+            estado: currentEstado,
+            sort:   currentSort,
+            page:   page
         });
-    }
-    
-    // Función para aplicar todos los filtros
-    function aplicarFiltros() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-        currentSearch = searchText;
-        
-        const tbody = document.querySelector('#creditosTable tbody');
-        if (!tbody) return;
-        
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Excluir fila de no resultados si existe
-        rows = rows.filter(row => row.id !== 'no-results-row');
-        
-        let visibleRows = [];
-        
-        rows.forEach(row => {
-            // Obtener datos de los atributos data-*
-            const estado = row.dataset.estado;
-            const cliente = row.dataset.cliente || '';
-            const producto = row.dataset.producto || '';
-            
-            // Filtro de estado
-            const estadoMatch = currentFilter === 'todos' || estado === currentFilter;
-            
-            // Filtro de búsqueda - buscar en cliente y producto
-            let searchMatch = true;
-            if (searchText !== '') {
-                searchMatch = cliente.includes(searchText) || producto.includes(searchText);
-            }
-            
-            // Guardar estado de visibilidad
-            if (estadoMatch && searchMatch) {
-                row.style.display = '';
-                visibleRows.push(row);
+
+        fetch(`{{ route('creditos.filter') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderTabla(data.creditos);
+                if (data.estadisticas) actualizarEstadisticas(data.estadisticas);
             } else {
-                row.style.display = 'none';
+                mostrarError('Error al filtrar créditos');
             }
-        });
-        
-        // Aplicar ordenamiento a las filas visibles
-        if (currentSort !== 'ninguno') {
-            visibleRows = ordenarFilas(visibleRows, currentSort);
-        }
-        
-        // Reconstruir el tbody con las filas ordenadas
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-        
-        // Agregar filas visibles ordenadas
-        visibleRows.forEach(row => tbody.appendChild(row));
-        
-        // Agregar filas ocultas al final
-        rows.forEach(row => {
-            if (row.style.display === 'none') {
-                tbody.appendChild(row);
-            }
-        });
-        
-        // Mostrar mensaje si no hay resultados
-        mostrarMensajeNoResultados(visibleRows.length, rows.length);
+        })
+        .catch(() => mostrarError('Error de conexión'));
     }
-    
-    // Función para mostrar mensaje cuando no hay resultados
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const table = document.getElementById('creditosTable');
-        const tbody = table.querySelector('tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="9" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron créditos</h5>
-                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
+
+    // ── Renderizar filas ──────────────────────────────────────────────
+    function renderTabla(paginado) {
+        const registros   = paginado.data      ?? [];
+        const links       = paginado.links     ?? [];
+        const currentPage = paginado.current_page ?? 1;
+        const perPage     = paginado.per_page  ?? 20;
+        const total       = paginado.total     ?? 0;
+        const from        = paginado.from      ?? 0;
+        const to          = paginado.to        ?? 0;
+
+        if (registros.length === 0) {
+            mostrarEmptyState('No se encontraron créditos');
+            actualizarContador(0, 0, 0);
+            actualizarPaginacion([]);
+            return;
+        }
+
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+
+        const csrfToken    = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const estadoColors = { activo: 'danger', abonado: 'warning', pagado: 'success' };
+        const estadoLabels = { activo: 'Activo', abonado: 'Abonado', pagado: 'Pagado' };
+        const estadoIconos = { activo: 'clock', abonado: 'money-bill', pagado: 'check-circle' };
+
+        tbody.innerHTML = '';
+
+        registros.forEach(credito => {
+            const estado     = credito.estado ?? 'activo';
+            const color      = estadoColors[estado] ?? 'secondary';
+            const label      = estadoLabels[estado] ?? estado;
+            const icono      = estadoIconos[estado] ?? 'circle';
+            const capital    = parseFloat(credito.capital ?? 0);
+            const restante   = parseFloat(credito.capital_restante ?? 0);
+            const porcentaje = capital > 0 ? ((capital - restante) / capital * 100).toFixed(0) : 0;
+            const showUrl    = `/creditos/${credito.id}`;
+            const editUrl    = `/creditos/${credito.id}/editar`;
+            const statusUrl  = `/creditos/${credito.id}/cambiar-estado`;
+
+            const fmt = val => parseFloat(val ?? 0).toLocaleString('es-GT', { minimumFractionDigits: 2 });
+
+            const formatearFecha = (fechaStr) => {
+                if (!fechaStr) return 'N/A';
+                const partes = fechaStr.split('T')[0].split('-'); // "2026-02-11" → ["2026","02","11"]
+                if (partes.length < 3) return 'N/A';
+                return `${partes[2]}/${partes[1]}/${partes[0]}`; // → "11/02/2026"
+            };
+
+            const fechaCredito = formatearFecha(credito.fecha_credito);
+
+            const ultimoPago = credito.fecha_ultimo_pago
+                ? `<small>${formatearFecha(credito.fecha_ultimo_pago)}</small>
+                <br><small class="text-muted">Q${fmt(credito.ultima_cantidad_pagada)}</small>`
+                : '<span class="badge bg-light text-dark">Sin pagos</span>';
+
+            const btnPago = restante > 0
+                ? `<button type="button" class="btn btn-sm btn-success btn-registrar-pago"
+                       data-credito-id="${credito.id}"
+                       data-cliente="${credito.nombre_cliente ?? 'N/A'}"
+                       data-capital-restante="${restante}"
+                       title="Registrar pago">
+                       <i class="fas fa-money-bill"></i>
+                   </button>`
+                : `<button type="button" class="btn btn-sm btn-secondary" disabled title="Crédito pagado">
+                       <i class="fas fa-check"></i>
+                   </button>`;
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td><strong>${credito.nombre_cliente ?? 'N/A'}</strong></td>
+                    <td><small>${(credito.producto_o_servicio_dado || 'No especificado').substring(0, 40)}</small></td>
+                    <td><strong>Q${fmt(capital)}</strong></td>
+                    <td>${restante > 0
+                        ? `<strong class="text-danger">Q${fmt(restante)}</strong>`
+                        : '<span class="text-success">Q0.00</span>'}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1" style="height:8px;">
+                                <div class="progress-bar bg-${color}" role="progressbar" style="width:${porcentaje}%"></div>
+                            </div>
+                            <small class="ms-2">${porcentaje}%</small>
+                        </div>
                     </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
+                    <td><small>${fechaCredito}</small></td>
+                    <td>${ultimoPago}</td>
+                    <td>
+                        <span class="badge bg-${color} p-2">
+                            <i class="fas fa-${icono} me-1"></i>${label}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="${showUrl}" class="btn btn-sm btn-info"    title="Ver detalles"><i class="fas fa-eye"></i></a>
+                            <a href="${editUrl}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            ${btnPago}
+                            <form action="${statusUrl}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('¿Cambiar el estado de este crédito?')">
+                                <input type="hidden" name="_token" value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-${color}" title="Cambiar estado">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>`);
+        });
+
+        enlazarBotonesPago();
+        actualizarContador(from, to, total);
+        actualizarPaginacion(links);
     }
-    
-    // Función para limpiar filtros
-    window.limpiarFiltros = function() {
-        // Resetear filtros
-        currentFilter = 'todos';
-        currentSort = 'fecha_desc';
-        
-        // Actualizar botones de estado
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'todos') {
-                btn.classList.add('active');
+
+    // ── Actualizar estadísticas ───────────────────────────────────────
+    function actualizarEstadisticas(est) {
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        const fmt = val => 'Q' + parseFloat(val ?? 0).toLocaleString('es-GT', { minimumFractionDigits: 2 });
+
+        set('stat-total',    est.total_creditos ?? 0);
+        set('stat-activos',  est.activos ?? 0);
+        set('stat-abonados', est.abonados ?? 0);
+        set('stat-recuperado', fmt(est.total_recuperado));
+
+        const ca = document.getElementById('stat-capital-activos');
+        if (ca) ca.textContent = fmt(est.capital_pendiente_activos) + ' pendiente';
+        const cab = document.getElementById('stat-capital-abonados');
+        if (cab) cab.textContent = fmt(est.capital_pendiente_abonados) + ' pendiente';
+    }
+
+    // ── Contador ──────────────────────────────────────────────────────
+    function actualizarContador(from, to, total) {
+        if (!contadorWrap) return;
+        contadorWrap.innerHTML = total > 0
+            ? `Mostrando ${from} - ${to} de <strong>${total}</strong> créditos encontrados`
+            : 'Sin resultados';
+    }
+
+    // ── Paginación ────────────────────────────────────────────────────
+    function actualizarPaginacion(links) {
+        if (!paginacionWrap) return;
+        if (!links || links.length <= 3) { paginacionWrap.innerHTML = ''; return; }
+        let html = '<ul class="pagination mb-0">';
+        links.forEach(link => {
+            const active   = link.active ? 'active'   : '';
+            const disabled = !link.url   ? 'disabled' : '';
+            let pageNum = null;
+            if (link.url) {
+                const match = link.url.match(/[?&]page=(\d+)/);
+                pageNum = match ? match[1] : null;
             }
+            const click = pageNum ? `onclick="cambiarPagina(${pageNum}); return false;"` : '';
+            html += `<li class="page-item ${active} ${disabled}">
+                        <a class="page-link" href="#" ${click}>${link.label}</a>
+                     </li>`;
         });
-        
-        // Actualizar botones de ordenamiento
-        document.querySelectorAll('.sort-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.sort === 'fecha_desc') {
-                btn.classList.add('active');
-            }
+        html += '</ul>';
+        paginacionWrap.innerHTML = html;
+    }
+
+    // ── Loader / Error ────────────────────────────────────────────────
+    function mostrarLoader() {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Buscando créditos...</p>
+                </td>
+            </tr>`;
+    }
+
+    function mostrarError(msg) {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center py-4 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>${msg}
+                </td>
+            </tr>`;
+    }
+
+    // ── Enlazar botones de pago tras render AJAX ──────────────────────
+    function enlazarBotonesPago() {
+        document.querySelectorAll('.btn-registrar-pago').forEach(btn => {
+            btn.addEventListener('click', function () {
+                if (window.abrirModalPago) {
+                    window.abrirModalPago(
+                        this.dataset.creditoId,
+                        this.dataset.cliente,
+                        parseFloat(this.dataset.capitalRestante)
+                    );
+                }
+            });
         });
-        
-        // Limpiar búsqueda
-        document.getElementById('searchInput').value = '';
-        
-        // Aplicar filtros
-        aplicarFiltros();
+    }
+
+    // ── Cambiar página ────────────────────────────────────────────────
+    window.cambiarPagina = function (page) {
+        fetchFiltrado(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    
-    // Event listeners para filtros
+
+    // ── Limpiar filtros ───────────────────────────────────────────────
+    window.limpiarFiltros = function () {
+        currentEstado = 'todos';
+        currentSort   = 'fecha_desc';
+        currentSearch = '';
+        document.getElementById('searchInput').value = '';
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'todos'));
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === 'fecha_desc'));
+        window.location.href = "{{ route('creditos.index') }}";
+    };
+
+    // ── Event listeners ───────────────────────────────────────────────
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentFilter = this.dataset.filter;
-            aplicarFiltros();
+            currentEstado = this.dataset.filter;
+            fetchFiltrado();
         });
     });
-    
-    // Event listeners para ordenamiento
+
     document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentSort = this.dataset.sort;
-            aplicarFiltros();
+            fetchFiltrado();
         });
     });
-    
-    // Búsqueda en tiempo real
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('keyup', function() {
+
+    document.getElementById('searchInput').addEventListener('keyup', function () {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(aplicarFiltros, 300);
+        currentSearch = this.value;
+        searchTimeout = setTimeout(() => fetchFiltrado(), 350);
     });
-    
-    // Botón limpiar búsqueda
-    document.getElementById('clearSearch').addEventListener('click', function() {
+
+    document.getElementById('clearSearch').addEventListener('click', function () {
         document.getElementById('searchInput').value = '';
-        aplicarFiltros();
+        currentSearch = '';
+        fetchFiltrado();
         document.getElementById('searchInput').focus();
     });
-    
-    // Botón limpiar todos los filtros (opcional - puedes agregar un botón en la UI)
-    const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
-    if (btnLimpiarFiltros) {
-        btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
-    }
-    
-    // ===== CONFIGURACIÓN DEL MODAL DE PAGO =====
-    // Event listeners para botones de registrar pago
-    document.querySelectorAll('.btn-registrar-pago').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const creditoId = this.dataset.creditoId;
-            const cliente = this.dataset.cliente;
-            const capitalRestante = parseFloat(this.dataset.capitalRestante);
-            
-            // Llamar a la función global para abrir el modal
-            if (window.abrirModalPago) {
-                window.abrirModalPago(creditoId, cliente, capitalRestante);
-            }
-        });
-    });
-    
-    // Inicializar botones activos
-    const filterBtn = document.querySelector('.filter-btn[data-filter="todos"]');
-    if (filterBtn) filterBtn.classList.add('active');
-    
-    const sortBtn = document.querySelector('.sort-btn[data-sort="fecha_desc"]');
-    if (sortBtn) sortBtn.classList.add('active');
-    
-    // Tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+
+    // ── Enlazar botones en carga inicial ──────────────────────────────
+    enlazarBotonesPago();
 });
 </script>
 @endpush

@@ -113,6 +113,38 @@ class AuditoriaController extends Controller
     }
 
     /**
+     * Filtrar auditoría via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'modulo'      => $request->get('modulo', 'todos'),
+            'accion'      => $request->get('accion', 'todos'),
+            'fecha_inicio'=> $request->get('fecha_inicio', now()->subDays(7)->format('Y-m-d')),
+            'fecha_fin'   => $request->get('fecha_fin', now()->format('Y-m-d')),
+            'busqueda'    => $request->get('busqueda', ''),
+            'per_page'    => 20,
+            'page'        => $request->get('page', 1),
+        ];
+
+        $response = $this->apiService->get('auditoria', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success'   => true,
+                'auditoria' => $data['auditoria'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success'   => false,
+            'auditoria' => ['data' => [], 'links' => [], 'total' => 0],
+            'message'   => 'Error al filtrar'
+        ], 500);
+    }
+
+    /**
      * Mostrar detalles de un log
      */
     public function show($id)

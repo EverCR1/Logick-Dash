@@ -82,6 +82,44 @@ class ServicioController extends Controller
     }
 
     /**
+     * Filtrar servicios via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search'     => $request->get('search', ''),
+            'estado'     => $request->get('estado', 'todos'),
+            'margen'     => $request->get('margen', 'todos'),
+            'precio_min' => $request->get('precio_min', ''),
+            'precio_max' => $request->get('precio_max', ''),
+            'sort'       => $request->get('sort', 'nombre_asc'),
+            'page'       => $request->get('page', 1),
+            'per_page'   => 20,
+        ];
+
+        // Eliminar valores vacíos para no contaminar la query
+        $params = array_filter($params, fn($v) => $v !== '' && $v !== 'todos');
+        $params['page']     = $request->get('page', 1);
+        $params['per_page'] = 20;
+
+        $response = $this->apiService->get('servicios/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success'   => true,
+                'servicios' => $data['servicios'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success'   => false,
+            'servicios' => ['data' => [], 'links' => [], 'total' => 0],
+            'message'   => 'Error al filtrar'
+        ], 500);
+    }
+
+    /**
      * Mostrar formulario de creación
      */
     public function create()

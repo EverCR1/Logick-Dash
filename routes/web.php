@@ -55,6 +55,7 @@ Route::middleware(['web.auth'])->group(function () {
     
     // Proveedores (admin y vendedor)
     Route::middleware(['role:administrador,vendedor'])->prefix('proveedores')->group(function () {
+        Route::get('/filter', [ProveedorController::class, 'filter'])->name('proveedores.filter');
         Route::get('/', [ProveedorController::class, 'index'])->name('proveedores.index');
         Route::get('/crear', [ProveedorController::class, 'create'])->name('proveedores.create');
         Route::post('/', [ProveedorController::class, 'store'])->name('proveedores.store');
@@ -79,6 +80,7 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Productos (admin y vendedor)
     Route::middleware(['web.auth:administrador,vendedor'])->prefix('productos')->group(function () {
+         Route::get('/filter',     [ProductoController::class, 'filter'])->name('productos.filter');
         Route::get('/', [ProductoController::class, 'index'])->name('productos.index');
         Route::get('/crear', [ProductoController::class, 'create'])->name('productos.create');
         Route::post('/', [ProductoController::class, 'store'])->name('productos.store');
@@ -97,6 +99,7 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Servicios (admin y vendedor)
     Route::middleware(['web.auth:administrador,vendedor'])->prefix('servicios')->group(function () {
+         Route::get('/filter', [ServicioController::class, 'filter'])->name('servicios.filter');
         Route::get('/', [ServicioController::class, 'index'])->name('servicios.index');
         Route::get('/crear', [ServicioController::class, 'create'])->name('servicios.create');
         Route::post('/', [ServicioController::class, 'store'])->name('servicios.store');
@@ -114,6 +117,7 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Créditos (admin y vendedor)
     Route::middleware(['web.auth:administrador,vendedor'])->prefix('creditos')->group(function () {
+        Route::get('/filter', [CreditoController::class, 'filter'])->name('creditos.filter');
         Route::get('/', [CreditoController::class, 'index'])->name('creditos.index');
         Route::get('/crear', [CreditoController::class, 'create'])->name('creditos.create');
         Route::post('/', [CreditoController::class, 'store'])->name('creditos.store');
@@ -145,6 +149,7 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Ventas (admin y vendedor)
     Route::middleware(['web.auth:administrador,vendedor'])->prefix('ventas')->group(function () {
+        Route::get('/filter',   [VentaController::class, 'filter'])->name('ventas.filter');
         Route::get('/', [VentaController::class, 'index'])->name('ventas.index');
         Route::get('/crear', [VentaController::class, 'create'])->name('ventas.create');
         Route::post('/', [VentaController::class, 'store'])->name('ventas.store');
@@ -180,8 +185,9 @@ Route::middleware(['web.auth'])->group(function () {
 
     // Auditoría (solo administrador)
     Route::middleware(['web.auth', 'role:administrador'])->prefix('auditoria')->group(function () {
-        Route::get('/', [AuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::get('/filter',       [AuditoriaController::class, 'filter'])->name('auditoria.filter');
         Route::get('/estadisticas', [AuditoriaController::class, 'estadisticas'])->name('auditoria.estadisticas');
+        Route::get('/', [AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/{id}', [AuditoriaController::class, 'show'])->name('auditoria.show');
     });
 

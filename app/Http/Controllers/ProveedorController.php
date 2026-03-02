@@ -27,6 +27,35 @@ class ProveedorController extends Controller
         return view('proveedores.index', compact('proveedores'));
     }
 
+    /**
+     * Filtrar proveedores via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search' => $request->get('search', ''),
+            'estado' => $request->get('estado', 'todos'),
+            'page'   => $request->get('page', 1),
+            'per_page' => 20,
+        ];
+
+        $response = $this->apiService->get('proveedores/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success' => true,
+                'proveedores' => $data['proveedores'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'proveedores' => ['data' => [], 'links' => [], 'total' => 0],
+            'message' => 'Error al filtrar'
+        ], 500);
+    }
+
     public function create()
     {
         return view('proveedores.create');

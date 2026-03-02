@@ -87,6 +87,37 @@ class CreditoController extends Controller
     }
 
     /**
+     * Filtrar créditos via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search'   => $request->get('search', ''),
+            'estado'   => $request->get('estado', 'todos'),
+            'sort'     => $request->get('sort', 'fecha_desc'),
+            'page'     => $request->get('page', 1),
+            'per_page' => 20,
+        ];
+
+        $response = $this->apiService->get('creditos/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success'     => true,
+                'creditos'    => $data['creditos'] ?? [],
+                'estadisticas'=> $data['estadisticas'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success'  => false,
+            'creditos' => ['data' => [], 'links' => [], 'total' => 0],
+            'message'  => 'Error al filtrar'
+        ], 500);
+    }
+
+    /**
      * Mostrar formulario de creación
      */
     public function create()

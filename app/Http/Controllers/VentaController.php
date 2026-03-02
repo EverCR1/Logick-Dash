@@ -128,6 +128,45 @@ class VentaController extends Controller
     }
 
     /**
+     * Filtrar ventas via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search'      => $request->get('search', ''),
+            'estado'      => $request->get('estado', 'todos'),
+            'metodo_pago' => $request->get('metodo_pago', 'todos'),
+            'fecha_inicio'=> $request->get('fecha_inicio', ''),
+            'fecha_fin'   => $request->get('fecha_fin', ''),
+            'monto_min'   => $request->get('monto_min', ''),
+            'monto_max'   => $request->get('monto_max', ''),
+            'sort'        => $request->get('sort', 'fecha_desc'),
+            'page'        => $request->get('page', 1),
+            'per_page'    => 20,
+        ];
+
+        $params = array_filter($params, fn($v) => $v !== '' && $v !== 'todos');
+        $params['page']     = $request->get('page', 1);
+        $params['per_page'] = 20;
+
+        $response = $this->apiService->get('ventas/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success' => true,
+                'ventas'  => $data['ventas'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'ventas'  => ['data' => [], 'links' => [], 'total' => 0],
+            'message' => 'Error al filtrar'
+        ], 500);
+    }
+
+    /**
      * Mostrar formulario de creación de venta
      */
     public function create()

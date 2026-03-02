@@ -14,109 +14,43 @@
             <h5 class="card-title mb-0">
                 <i class="fas fa-concierge-bell me-2"></i>Gestión de Servicios
             </h5>
-            <div class="d-flex gap-2">
-                <a href="{{ route('servicios.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i> Nuevo Servicio
-                </a>
-            </div>
+            <a href="{{ route('servicios.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nuevo Servicio
+            </a>
         </div>
-        <div class="card-body">
-            <!-- Filtros y búsqueda en tiempo real -->
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">
-                            Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm filter-btn" data-filter="activo">
-                            Activos
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm filter-btn" data-filter="inactivo">
-                            Inactivos
-                        </button>
-                    </div>
-                    
-                    <div class="btn-group ms-2" role="group">
-                        <button type="button" class="btn btn-outline-info btn-sm filter-margen-btn active" data-margen="todos">
-                            Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm filter-margen-btn" data-margen="alto">
-                            Margen alto (>100%)
-                        </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm filter-margen-btn" data-margen="medio">
-                            Margen medio (50-100%)
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm filter-margen-btn" data-margen="bajo">
-                            Margen bajo (20-50%)
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm filter-margen-btn" data-margen="minimo">
-                            Margen mínimo (<20%)
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Buscar por código, nombre, descripción, categoría...">
-                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Limpiar búsqueda">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <small class="text-muted mt-1 d-block">
-                        <i class="fas fa-info-circle"></i> Búsqueda en código, nombre, descripción y categorías
-                    </small>
-                </div>
-            </div>
 
-            <!-- Filtros adicionales -->
+        <div class="card-body">
+
+            {{-- Fila 1: Estado, Margen, Ordenamiento, Precio --}}
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <div class="d-flex flex-wrap gap-2">
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-tag me-1"></i> Categorías
-                            </button>
-                            <div class="dropdown-menu p-3" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
-                                <div class="mb-2">
-                                    <input type="text" class="form-control form-control-sm" id="filterCategoriaText" placeholder="Buscar categoría...">
-                                </div>
-                                <div id="categoriaList">
-                                    <!-- Se llenará dinámicamente con JavaScript -->
-                                </div>
-                            </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+
+                        {{-- Filtro estado --}}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="todos">Todos</button>
+                            <button class="btn btn-outline-success  btn-sm filter-btn" data-filter="activo">Activos</button>
+                            <button class="btn btn-outline-danger   btn-sm filter-btn" data-filter="inactivo">Inactivos</button>
                         </div>
-                        
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-chart-line me-1"></i> Rango de precios
-                            </button>
-                            <div class="dropdown-menu p-3" style="min-width: 280px;">
-                                <div class="mb-3">
-                                    <label class="form-label">Precio mínimo</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">Q</span>
-                                        <input type="number" class="form-control" id="precioMin" min="0" step="0.01" placeholder="0.00">
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Precio máximo</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">Q</span>
-                                        <input type="number" class="form-control" id="precioMax" min="0" step="0.01" placeholder="9999.99">
-                                    </div>
-                                </div>
-                                <button class="btn btn-sm btn-primary w-100" id="aplicarRangoPrecio">Aplicar</button>
-                            </div>
+
+                        {{-- Filtro margen --}}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-info    btn-sm filter-margen-btn active" data-margen="todos">Todo margen</button>
+                            <button class="btn btn-outline-success  btn-sm filter-margen-btn" data-margen="alto">Alto (&gt;100%)</button>
+                            <button class="btn btn-outline-primary  btn-sm filter-margen-btn" data-margen="medio">Medio (50-100%)</button>
+                            <button class="btn btn-outline-warning  btn-sm filter-margen-btn" data-margen="bajo">Bajo (20-50%)</button>
+                            <button class="btn btn-outline-danger   btn-sm filter-margen-btn" data-margen="minimo">Mínimo (&lt;20%)</button>
                         </div>
-                        
+
+                        {{-- Ordenamiento --}}
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-sort me-1"></i> Ordenar por
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    id="sortDropdownBtn" data-bs-toggle="dropdown">
+                                <i class="fas fa-sort me-1"></i><span id="sortLabel">Nombre A-Z</span>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="nombre_asc">Nombre A-Z</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-sort="nombre_desc">Nombre Z-A</a></li>
+                                <li><a class="dropdown-item sort-option active" href="#" data-sort="nombre_asc">Nombre A-Z</a></li>
+                                <li><a class="dropdown-item sort-option"        href="#" data-sort="nombre_desc">Nombre Z-A</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item sort-option" href="#" data-sort="precio_asc">Precio menor a mayor</a></li>
                                 <li><a class="dropdown-item sort-option" href="#" data-sort="precio_desc">Precio mayor a menor</a></li>
@@ -128,59 +62,73 @@
                                 <li><a class="dropdown-item sort-option" href="#" data-sort="margen_desc">Margen mayor a menor</a></li>
                             </ul>
                         </div>
-                        
-                        <button class="btn btn-sm btn-info" id="btnLimpiarFiltros" title="Limpiar todos los filtros">
+
+                        {{-- Rango de precio --}}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    id="precioDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="fas fa-chart-line me-1"></i> Precio
+                            </button>
+                            <div class="dropdown-menu p-3" style="min-width:260px;">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Precio mínimo</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="precioMin" min="0" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label form-label-sm">Precio máximo</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="precioMax" min="0" step="0.01" placeholder="9999.99">
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary w-100" id="btnAplicarPrecio">
+                                    <i class="fas fa-filter me-1"></i>Aplicar rango
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Limpiar --}}
+                        <button class="btn btn-sm btn-outline-danger" id="btnLimpiarFiltros">
                             <i class="fas fa-undo me-1"></i> Limpiar filtros
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- Fila 2: Búsqueda --}}
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput"
+                               placeholder="Buscar por código, nombre o descripción...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
+            {{-- Datos iniciales PHP --}}
             @php
-                // Extraer datos de manera segura
-                $serviciosData = [];
-                $serviciosLinks = [];
-                $serviciosMeta = [];
-                
-                if (isset($servicios['data'])) {
-                    $serviciosData = $servicios['data'];
-                } elseif (isset($servicios) && is_array($servicios)) {
-                    $serviciosData = $servicios;
-                }
-                
-                if (isset($servicios['links']) && is_array($servicios['links'])) {
-                    $serviciosLinks = $servicios['links'];
-                }
-                
-                if (isset($servicios['meta']) && is_array($servicios['meta'])) {
-                    $serviciosMeta = $servicios['meta'];
-                }
-
-                // Recopilar categorías únicas para filtros
-                $categoriasUnicas = [];
-                foreach ($serviciosData as $servicio) {
-                    if (!empty($servicio['categorias'])) {
-                        foreach ($servicio['categorias'] as $categoria) {
-                            $categoriaId = $categoria['id'] ?? '';
-                            $categoriaNombre = $categoria['nombre'] ?? '';
-                            if ($categoriaId && $categoriaNombre) {
-                                $categoriasUnicas[$categoriaId] = [
-                                    'id' => $categoriaId,
-                                    'nombre' => $categoriaNombre
-                                ];
-                            }
-                        }
-                    }
-                }
-                
-                // Ordenar alfabéticamente
-                usort($categoriasUnicas, function($a, $b) {
-                    return strcmp($a['nombre'], $b['nombre']);
-                });
+                $serviciosData  = $servicios['data']  ?? (is_array($servicios) ? $servicios : []);
+                $serviciosLinks = $servicios['links'] ?? [];
+                $serviciosMeta  = [
+                    'total' => $servicios['total'] ?? 0,
+                    'from'  => $servicios['from']  ?? 0,
+                    'to'    => $servicios['to']    ?? 0,
+                ];
             @endphp
 
-            @if(empty($serviciosData))
-                <div class="text-center py-5">
+            {{-- Tabla siempre en el DOM --}}
+            <div id="tabla-container">
+
+                <div id="empty-state" class="text-center py-5"
+                     style="{{ empty($serviciosData) ? '' : 'display:none;' }}">
                     <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">No hay servicios registrados</h5>
                     <p class="text-muted">Comienza agregando tu primer servicio</p>
@@ -188,153 +136,96 @@
                         <i class="fas fa-plus me-2"></i> Crear Primer Servicio
                     </a>
                 </div>
-            @else
-                <div class="table-responsive">
+
+                <div class="table-responsive" id="table-wrapper"
+                     style="{{ empty($serviciosData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="serviciosTable">
                         <thead class="bg-primary text-white">
                             <tr>
-                                <th style="width: 70px;">Imagen</th>
+                                <th style="width:70px;">Imagen</th>
                                 <th>Código</th>
                                 <th>Servicio</th>
                                 <th>Inversión</th>
-                                <th>Precios</th>
+                                <th>Precio</th>
                                 <th>Margen</th>
                                 <th>Estado</th>
-                                <th style="width: 150px;">Acciones</th>
+                                <th style="width:150px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($serviciosData as $servicio)
                             @php
-                                // Obtener imagen
                                 $urlImagen = null;
-                                if(isset($servicio['imagenes']) && count($servicio['imagenes']) > 0) {
-                                    $imagen = $servicio['imagenes'][0];
-                                    if(!empty($imagen['url_thumb'])) {
-                                        $urlImagen = $imagen['url_thumb'];
-                                    } elseif(!empty($imagen['url_medium'])) {
-                                        $urlImagen = $imagen['url_medium'];
-                                    } elseif(!empty($imagen['url'])) {
-                                        $urlImagen = $imagen['url'];
-                                    }
+                                if (!empty($servicio['imagenes'])) {
+                                    $img = $servicio['imagenes'][0];
+                                    $urlImagen = $img['url_thumb'] ?? $img['url_medium'] ?? $img['url'] ?? null;
                                 }
-                                
-                                // Calcular margen
-                                $precio_final = $servicio['precio_oferta'] ?? $servicio['precio_venta'];
-                                $inversion = $servicio['inversion_estimada'] ?? 0;
-                                $margen = $inversion > 0 ? (($precio_final - $inversion) / $inversion) * 100 : 0;
+                                $precioFinal = $servicio['precio_oferta'] ?? $servicio['precio_venta'];
+                                $inversion   = $servicio['inversion_estimada'] ?? 0;
+                                $margen      = $inversion > 0 ? (($precioFinal - $inversion) / $inversion) * 100 : 0;
                                 $margenClass = $margen >= 100 ? 'success' : ($margen >= 50 ? 'info' : ($margen >= 20 ? 'warning' : 'danger'));
-                                
-                                // Determinar categoría de margen para filtro
-                                $margenCategoria = 'minimo';
-                                if ($margen >= 100) {
-                                    $margenCategoria = 'alto';
-                                } elseif ($margen >= 50) {
-                                    $margenCategoria = 'medio';
-                                } elseif ($margen >= 20) {
-                                    $margenCategoria = 'bajo';
-                                }
-                                
-                                // Preparar texto de categorías para búsqueda
-                                $categoriasTexto = '';
-                                $categoriaIds = [];
-                                if (!empty($servicio['categorias'])) {
-                                    $categoriasArray = [];
-                                    foreach ($servicio['categorias'] as $categoria) {
-                                        $categoriasArray[] = strtolower($categoria['nombre'] ?? '');
-                                        $categoriaIds[] = $categoria['id'];
-                                    }
-                                    $categoriasTexto = implode(' ', $categoriasArray);
-                                }
                             @endphp
-                            <tr data-estado="{{ $servicio['estado'] ?? 'activo' }}"
-                                data-margen="{{ $margenCategoria }}"
-                                data-margen-valor="{{ $margen }}"
-                                data-precio="{{ $precio_final }}"
-                                data-inversion="{{ $inversion }}"
-                                data-nombre="{{ strtolower($servicio['nombre'] ?? '') }}"
-                                data-codigo="{{ strtolower($servicio['codigo'] ?? '') }}"
-                                data-descripcion="{{ strtolower($servicio['descripcion'] ?? '') }}"
-                                data-categorias-texto="{{ $categoriasTexto }}"
-                                data-categoria-ids="{{ json_encode($categoriaIds) }}">
+                            <tr>
                                 <td class="text-center">
                                     @if($urlImagen)
-                                        <img src="{{ $urlImagen }}" 
-                                             alt="{{ $servicio['nombre'] ?? 'Servicio' }}" 
+                                        <img src="{{ $urlImagen }}" alt="{{ $servicio['nombre'] ?? '' }}"
                                              class="img-thumbnail service-list-image"
-                                             style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
-                                             onclick="abrirModalImagen('{{ $urlImagen }}', '{{ $servicio['nombre'] ?? 'Servicio' }}')">
+                                             style="width:60px;height:60px;object-fit:cover;cursor:pointer;"
+                                             onclick="abrirModalImagen('{{ $urlImagen }}','{{ $servicio['nombre'] ?? '' }}')">
                                     @else
-                                        <div class="bg-light d-flex align-items-center justify-content-center rounded" 
-                                             style="width: 60px; height: 60px;">
+                                        <div class="bg-light d-flex align-items-center justify-content-center rounded"
+                                             style="width:60px;height:60px;">
                                             <i class="fas fa-concierge-bell text-muted"></i>
                                         </div>
                                     @endif
                                 </td>
+                                <td><strong>{{ $servicio['codigo'] ?? '' }}</strong></td>
                                 <td>
-                                    <strong>{{ $servicio['codigo'] ?? '' }}</strong>
-                                </td>
-                                <td>
-                                    <strong>{{ $servicio['nombre'] ?? '' }}</strong>
-                                    <br>
+                                    <strong>{{ $servicio['nombre'] ?? '' }}</strong><br>
                                     <small class="text-muted">{{ Str::limit($servicio['descripcion'] ?? 'Sin descripción', 80) }}</small>
-                                    @if(!empty($servicio['categorias']) && count($servicio['categorias']) > 0)
-                                        <br>
-                                        @foreach($servicio['categorias'] as $categoria)
-                                            <span class="badge bg-secondary me-1 mb-1">{{ $categoria['nombre'] ?? '' }}</span>
-                                        @endforeach
-                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark">
-                                        Q{{ number_format($servicio['inversion_estimada'] ?? 0, 2) }}
+                                        Q{{ number_format($inversion, 2) }}
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="d-flex flex-column">
-                                        <small>Venta: 
-                                            @if(!empty($servicio['precio_oferta']))
-                                                <span class="text-decoration-line-through text-muted">Q{{ number_format($servicio['precio_venta'] ?? 0, 2) }}</span>
-                                                <strong class="text-danger">Q{{ number_format($servicio['precio_oferta'], 2) }}</strong>
-                                            @else
-                                                <strong>Q{{ number_format($servicio['precio_venta'] ?? 0, 2) }}</strong>
-                                            @endif
-                                        </small>
-                                    </div>
+                                    @if(!empty($servicio['precio_oferta']))
+                                        <small><span class="text-decoration-line-through text-muted">Q{{ number_format($servicio['precio_venta'] ?? 0, 2) }}</span></small><br>
+                                        <strong class="text-danger">Q{{ number_format($servicio['precio_oferta'], 2) }}</strong>
+                                    @else
+                                        <strong>Q{{ number_format($servicio['precio_venta'] ?? 0, 2) }}</strong>
+                                    @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $margenClass }}" title="Margen de ganancia">
-                                        <i class="fas fa-chart-line me-1"></i>
-                                        {{ number_format($margen, 1) }}%
+                                    <span class="badge bg-{{ $margenClass }}">
+                                        <i class="fas fa-chart-line me-1"></i>{{ number_format($margen, 1) }}%
                                     </span>
-                                    <br>
-                                    <small class="text-muted">
-                                        Ganancia: Q{{ number_format($precio_final - $inversion, 2) }}
-                                    </small>
+                                    <small class="d-block text-muted">Ganancia: Q{{ number_format($precioFinal - $inversion, 2) }}</small>
                                 </td>
                                 <td>
-                                    <form action="{{ route('servicios.change-status', $servicio['id'] ?? '#') }}" method="POST" class="d-inline">
+                                    <form action="{{ route('servicios.change-status', $servicio['id'] ?? '#') }}" method="POST" class="d-inline"
+                                          onsubmit="return confirm('¿Cambiar el estado de este servicio?')">
                                         @csrf
-                                        <button type="submit" 
-                                                class="btn btn-sm btn-{{ ($servicio['estado'] ?? '') == 'activo' ? 'success' : 'secondary' }}"
-                                                onclick="return confirm('¿Estás seguro de cambiar el estado de este servicio?')">
-                                            <i class="fas fa-{{ ($servicio['estado'] ?? '') == 'activo' ? 'check-circle' : 'times-circle' }} me-1"></i>
-                                            {{ $servicio['estado'] ?? 'desconocido' }}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-{{ ($servicio['estado'] ?? '') === 'activo' ? 'success' : 'secondary' }}">
+                                            <i class="fas fa-{{ ($servicio['estado'] ?? '') === 'activo' ? 'check-circle' : 'times-circle' }} me-1"></i>
+                                            {{ ucfirst($servicio['estado'] ?? 'desconocido') }}
                                         </button>
                                     </form>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('servicios.show', $servicio['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver detalles">
+                                        <a href="{{ route('servicios.show', $servicio['id'] ?? '#') }}" class="btn btn-sm btn-info" title="Ver">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="{{ route('servicios.edit', $servicio['id'] ?? '#') }}" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('servicios.destroy', $servicio['id'] ?? '#') }}" method="POST" 
-                                              class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este servicio? Esta acción no se puede deshacer.')">
-                                            @csrf
-                                            @method('DELETE')
+                                        <form action="{{ route('servicios.destroy', $servicio['id'] ?? '#') }}" method="POST"
+                                              class="d-inline"
+                                              onsubmit="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')">
+                                            @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -347,49 +238,49 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
-                @if(!empty($serviciosLinks) && count($serviciosLinks) > 0)
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        @if(!empty($serviciosMeta))
-                            Mostrando 
-                            {{ $serviciosMeta['from'] ?? 1 }} - 
-                            {{ $serviciosMeta['to'] ?? count($serviciosData) }} de 
-                            {{ $serviciosMeta['total'] ?? count($serviciosData) }} servicios
+                {{-- Contador y paginación --}}
+                <div class="d-flex justify-content-between align-items-center mt-3"
+                     id="paginacion-container"
+                     style="{{ empty($serviciosData) ? 'display:none;' : '' }}">
+                    <div class="text-muted" id="contador-wrap">
+                        @if(($serviciosMeta['total'] ?? 0) > 0)
+                            Mostrando {{ $serviciosMeta['from'] }} - {{ $serviciosMeta['to'] }} de
+                            <strong>{{ $serviciosMeta['total'] }}</strong> servicios
                         @else
                             Mostrando {{ count($serviciosData) }} servicios
                         @endif
                     </div>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination mb-0">
-                            @foreach($serviciosLinks as $link)
-                                @if(is_array($link))
-                                    <li class="page-item {{ $link['active'] ?? false ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
-                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">
-                                            {!! $link['label'] ?? '' !!}
-                                        </a>
+                    <nav>
+                        <div id="paginacion-wrap">
+                            <ul class="pagination mb-0">
+                                @foreach($serviciosLinks as $link)
+                                    @if(is_array($link))
+                                    <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">{!! $link['label'] ?? '' !!}</a>
                                     </li>
-                                @endif
-                            @endforeach
-                        </ul>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                     </nav>
                 </div>
-                @endif
-            @endif
+
+            </div>{{-- fin #tabla-container --}}
+
         </div>
     </div>
 </div>
 
-<!-- Modal para ver imagen en grande -->
+{{-- Modal imagen --}}
 <div class="modal fade" id="modalImagen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalImagenTitulo">Imagen del servicio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center p-0">
-                <img src="" id="modalImagenSrc" class="img-fluid" alt="" style="max-height: 70vh; width: auto;">
+                <img src="" id="modalImagenSrc" class="img-fluid" style="max-height:70vh;width:auto;">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -401,361 +292,313 @@
 
 @push('scripts')
 <script>
-// Datos para filtros
-const categorias = @json(array_values($categoriasUnicas));
+document.addEventListener('DOMContentLoaded', function () {
 
-document.addEventListener('DOMContentLoaded', function() {
-    let currentEstadoFilter = 'todos';
-    let currentMargenFilter = 'todos';
-    let currentCategoriaFilter = null;
-    let currentSort = 'nombre_asc';
-    let currentSearch = '';
-    let precioMin = null;
-    let precioMax = null;
-    
-    // Inicializar dropdown de categorías
-    inicializarFiltrosCategoria();
-    
-    function inicializarFiltrosCategoria() {
-        const categoriaList = document.getElementById('categoriaList');
-        if (categoriaList) {
-            let categoriasHtml = '<div class="form-check mb-2">';
-            categoriasHtml += '<input class="form-check-input filter-categoria" type="radio" name="categoriaFilter" id="categoriaTodos" value="" checked>';
-            categoriasHtml += '<label class="form-check-label" for="categoriaTodos">Todas las categorías</label>';
-            categoriasHtml += '</div>';
-            
-            categorias.forEach(cat => {
-                categoriasHtml += '<div class="form-check mb-2">';
-                categoriasHtml += `<input class="form-check-input filter-categoria" type="radio" name="categoriaFilter" id="categoria_${cat.id}" value="${cat.id}">`;
-                categoriasHtml += `<label class="form-check-label" for="categoria_${cat.id}">${cat.nombre}</label>`;
-                categoriasHtml += '</div>';
-            });
-            
-            categoriaList.innerHTML = categoriasHtml;
-        }
-        
-        // Eventos para filtros de categoría
-        document.querySelectorAll('.filter-categoria').forEach(input => {
-            input.addEventListener('change', function() {
-                currentCategoriaFilter = this.value || null;
-                aplicarFiltros();
-            });
-        });
-        
-        // Filtro de texto en dropdown
-        document.getElementById('filterCategoriaText')?.addEventListener('keyup', function() {
-            const text = this.value.toLowerCase();
-            document.querySelectorAll('#categoriaList .form-check').forEach(item => {
-                const label = item.querySelector('label');
-                if (label) {
-                    const matches = label.textContent.toLowerCase().includes(text);
-                    item.style.display = matches ? '' : 'none';
-                }
-            });
-        });
+    // Estado actual de todos los filtros activos
+    let estado      = 'todos';
+    let margen      = 'todos';
+    let sort        = 'nombre_asc';
+    let search      = '';
+    let precioMin   = '';
+    let precioMax   = '';
+    let searchTimeout = null;
+
+    // Referencias al DOM reutilizadas en múltiples funciones
+    const getTabla       = () => document.querySelector('#serviciosTable tbody');
+    const paginacionWrap = document.getElementById('paginacion-wrap');
+    const contadorWrap   = document.getElementById('contador-wrap');
+    const tableWrapper   = document.getElementById('table-wrapper');
+    const paginacionCont = document.getElementById('paginacion-container');
+    const emptyState     = document.getElementById('empty-state');
+
+    // Muestra la tabla y oculta el estado vacío
+    function mostrarTabla() {
+        if (tableWrapper)   tableWrapper.style.display   = '';
+        if (paginacionCont) paginacionCont.style.display = '';
+        if (emptyState)     emptyState.style.display     = 'none';
     }
-    
-    // Función para aplicar todos los filtros
-    function aplicarFiltros() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-        currentSearch = searchText;
-        
-        const tbody = document.querySelector('#serviciosTable tbody');
+
+    // Muestra mensaje de sin resultados con botón de limpiar
+    function mostrarEmptyState(msg) {
+        if (tableWrapper)   tableWrapper.style.display   = 'none';
+        if (paginacionCont) paginacionCont.style.display = 'none';
+        if (emptyState) {
+            emptyState.style.display = '';
+            emptyState.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">${msg}</h5>
+                <p class="text-muted mb-3">Intenta con otros términos o filtros</p>
+                <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
+                    <i class="fas fa-undo me-2"></i>Limpiar filtros
+                </button>`;
+        }
+    }
+
+    // Envía la petición AJAX con todos los filtros activos al endpoint de filtrado
+    function fetchFiltrado(page = 1) {
+        mostrarLoader();
+
+        const params = new URLSearchParams({ estado, margen, sort, search, page,
+            precio_min: precioMin, precio_max: precioMax });
+
+        fetch(`{{ route('servicios.filter') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) renderTabla(data.servicios);
+            else mostrarError('Error al filtrar servicios');
+        })
+        .catch(() => mostrarError('Error de conexión'));
+    }
+
+    // Construye la miniatura de imagen para cada fila
+    function buildImagen(imagenes, nombre) {
+        if (!imagenes || imagenes.length === 0) {
+            return `<div class="bg-light d-flex align-items-center justify-content-center rounded" style="width:60px;height:60px;">
+                        <i class="fas fa-concierge-bell text-muted"></i>
+                    </div>`;
+        }
+        const img = imagenes[0];
+        const url = img.url_thumb ?? img.url_medium ?? img.url ?? '';
+        return url
+            ? `<img src="${url}" alt="${nombre}" class="img-thumbnail service-list-image"
+                    style="width:60px;height:60px;object-fit:cover;cursor:pointer;"
+                    onclick="abrirModalImagen('${url}','${nombre}')">`
+            : `<div class="bg-light d-flex align-items-center justify-content-center rounded" style="width:60px;height:60px;">
+                   <i class="fas fa-concierge-bell text-muted"></i>
+               </div>`;
+    }
+
+    // Transforma los datos paginados de la API en filas HTML e inyecta en la tabla
+    function renderTabla(paginado) {
+        const registros = paginado.data  ?? [];
+        const links     = paginado.links ?? [];
+        const total     = paginado.total ?? 0;
+        const from      = paginado.from  ?? 0;
+        const to        = paginado.to    ?? 0;
+
+        if (registros.length === 0) {
+            mostrarEmptyState('No se encontraron servicios');
+            actualizarContador(0, 0, 0);
+            actualizarPaginacion([]);
+            return;
+        }
+
+        mostrarTabla();
+        const tbody = getTabla();
         if (!tbody) return;
-        
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Excluir fila de no resultados si existe
-        rows = rows.filter(row => row.id !== 'no-results-row');
-        
-        let visibleRows = [];
-        
-        rows.forEach(row => {
-            // Obtener datos de los atributos data-*
-            const estado = row.dataset.estado;
-            const margen = row.dataset.margen;
-            const precio = parseFloat(row.dataset.precio) || 0;
-            const nombre = row.dataset.nombre || '';
-            const codigo = row.dataset.codigo || '';
-            const descripcion = row.dataset.descripcion || '';
-            const categoriasTexto = row.dataset.categoriasTexto || '';
-            
-            // Parsear categorías IDs
-            let categoriaIds = [];
-            try {
-                categoriaIds = JSON.parse(row.dataset.categoriaIds || '[]');
-            } catch (e) {
-                categoriaIds = [];
-            }
-            
-            // Filtro de búsqueda en múltiples campos
-            let searchMatch = true;
-            if (searchText !== '') {
-                searchMatch = nombre.includes(searchText) || 
-                            codigo.includes(searchText) || 
-                            descripcion.includes(searchText) || 
-                            categoriasTexto.includes(searchText);
-            }
-            
-            // Filtro de estado
-            const estadoMatch = currentEstadoFilter === 'todos' || estado === currentEstadoFilter;
-            
-            // Filtro de margen
-            const margenMatch = currentMargenFilter === 'todos' || margen === currentMargenFilter;
-            
-            // Filtro de categoría
-            let categoriaMatch = true;
-            if (currentCategoriaFilter) {
-                categoriaMatch = categoriaIds.includes(parseInt(currentCategoriaFilter));
-            }
-            
-            // Filtro de rango de precio
-            let precioMatch = true;
-            if (precioMin !== null) {
-                precioMatch = precio >= precioMin;
-            }
-            if (precioMatch && precioMax !== null) {
-                precioMatch = precio <= precioMax;
-            }
-            
-            // Guardar estado de visibilidad
-            if (estadoMatch && margenMatch && categoriaMatch && precioMatch && searchMatch) {
-                row.style.display = '';
-                visibleRows.push(row);
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Aplicar ordenamiento solo a las filas visibles
-        if (currentSort !== 'ninguno') {
-            visibleRows = ordenarFilas(visibleRows, currentSort);
-        }
-        
-        // Reconstruir el tbody con las filas ordenadas
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-        
-        // Agregar primero las filas visibles ordenadas
-        visibleRows.forEach(row => tbody.appendChild(row));
-        
-        // Luego agregar las filas ocultas
-        rows.forEach(row => {
-            if (row.style.display === 'none') {
-                tbody.appendChild(row);
-            }
-        });
-        
-        // Mostrar mensaje si no hay resultados
-        mostrarMensajeNoResultados(visibleRows.length, rows.length);
-    }
-    
-    // Función para ordenar filas
-    function ordenarFilas(rows, sortType) {
-        return rows.sort((a, b) => {
-            switch(sortType) {
-                case 'nombre_asc':
-                    return (a.dataset.nombre || '').localeCompare(b.dataset.nombre || '');
-                case 'nombre_desc':
-                    return (b.dataset.nombre || '').localeCompare(a.dataset.nombre || '');
-                case 'precio_asc':
-                    return (parseFloat(a.dataset.precio) || 0) - (parseFloat(b.dataset.precio) || 0);
-                case 'precio_desc':
-                    return (parseFloat(b.dataset.precio) || 0) - (parseFloat(a.dataset.precio) || 0);
-                case 'inversion_asc':
-                    return (parseFloat(a.dataset.inversion) || 0) - (parseFloat(b.dataset.inversion) || 0);
-                case 'inversion_desc':
-                    return (parseFloat(b.dataset.inversion) || 0) - (parseFloat(a.dataset.inversion) || 0);
-                case 'margen_asc':
-                    return (parseFloat(a.dataset.margenValor) || 0) - (parseFloat(b.dataset.margenValor) || 0);
-                case 'margen_desc':
-                    return (parseFloat(b.dataset.margenValor) || 0) - (parseFloat(a.dataset.margenValor) || 0);
-                default:
-                    return 0;
-            }
-        });
-    }
-    
-    // Función para mostrar mensaje cuando no hay resultados
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const table = document.getElementById('serviciosTable');
-        const tbody = table.querySelector('tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="8" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron servicios</h5>
-                        <p class="text-muted mb-3">Intenta con otros términos de búsqueda o filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
+
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const fmt  = val => parseFloat(val ?? 0).toLocaleString('es-GT', { minimumFractionDigits: 2 });
+
+        tbody.innerHTML = '';
+
+        registros.forEach(s => {
+            const precioFinal  = parseFloat(s.precio_oferta ?? s.precio_venta ?? 0);
+            const inversion    = parseFloat(s.inversion_estimada ?? 0);
+            const margenVal    = inversion > 0 ? ((precioFinal - inversion) / inversion) * 100 : 0;
+            const margenClass  = margenVal >= 100 ? 'success' : (margenVal >= 50 ? 'info' : (margenVal >= 20 ? 'warning' : 'danger'));
+            const activo       = (s.estado ?? '') === 'activo';
+
+            const precioHtml = s.precio_oferta
+                ? `<small><span class="text-decoration-line-through text-muted">Q${fmt(s.precio_venta)}</span></small><br>
+                   <strong class="text-danger">Q${fmt(s.precio_oferta)}</strong>`
+                : `<strong>Q${fmt(s.precio_venta)}</strong>`;
+
+            const statusUrl = `/servicios/${s.id}/cambiar-estado`;
+            const showUrl   = `/servicios/${s.id}`;
+            const editUrl   = `/servicios/${s.id}/editar`;
+            const deleteUrl = `/servicios/${s.id}`;
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td class="text-center">${buildImagen(s.imagenes, s.nombre ?? '')}</td>
+                    <td><strong>${s.codigo ?? ''}</strong></td>
+                    <td>
+                        <strong>${s.nombre ?? ''}</strong><br>
+                        <small class="text-muted">${(s.descripcion ?? 'Sin descripción').substring(0, 80)}</small>
                     </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
+                    <td><span class="badge bg-light text-dark">Q${fmt(inversion)}</span></td>
+                    <td>${precioHtml}</td>
+                    <td>
+                        <span class="badge bg-${margenClass}">
+                            <i class="fas fa-chart-line me-1"></i>${margenVal.toFixed(1)}%
+                        </span>
+                        <small class="d-block text-muted">Ganancia: Q${fmt(precioFinal - inversion)}</small>
+                    </td>
+                    <td>
+                        <form action="${statusUrl}" method="POST" class="d-inline"
+                              onsubmit="return confirm('¿Cambiar el estado de este servicio?')">
+                            <input type="hidden" name="_token" value="${csrf}">
+                            <button type="submit" class="btn btn-sm btn-${activo ? 'success' : 'secondary'}">
+                                <i class="fas fa-${activo ? 'check-circle' : 'times-circle'} me-1"></i>
+                                ${activo ? 'Activo' : 'Inactivo'}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="${showUrl}"  class="btn btn-sm btn-info"    title="Ver"><i class="fas fa-eye"></i></a>
+                            <a href="${editUrl}"  class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <form action="${deleteUrl}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')">
+                                <input type="hidden" name="_token"  value="${csrf}">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>`);
+        });
+
+        actualizarContador(from, to, total);
+        actualizarPaginacion(links);
     }
-    
-    // Función para limpiar filtros
-    window.limpiarFiltros = function() {
-        currentEstadoFilter = 'todos';
-        currentMargenFilter = 'todos';
-        currentCategoriaFilter = null;
-        currentSort = 'nombre_asc';
-        precioMin = null;
-        precioMax = null;
-        
-        // Actualizar botones de estado
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'todos') {
-                btn.classList.add('active');
+
+    // Actualiza el texto del contador de resultados
+    function actualizarContador(from, to, total) {
+        if (!contadorWrap) return;
+        contadorWrap.innerHTML = total > 0
+            ? `Mostrando ${from} - ${to} de <strong>${total}</strong> servicios encontrados`
+            : 'Sin resultados';
+    }
+
+    // Renderiza los botones de paginación según los links devueltos por la API
+    function actualizarPaginacion(links) {
+        if (!paginacionWrap) return;
+        if (!links || links.length <= 3) { paginacionWrap.innerHTML = ''; return; }
+        let html = '<ul class="pagination mb-0">';
+        links.forEach(link => {
+            const active   = link.active ? 'active'   : '';
+            const disabled = !link.url   ? 'disabled' : '';
+            let pageNum = null;
+            if (link.url) {
+                const m = link.url.match(/[?&]page=(\d+)/);
+                pageNum = m ? m[1] : null;
             }
+            const click = pageNum ? `onclick="cambiarPagina(${pageNum}); return false;"` : '';
+            html += `<li class="page-item ${active} ${disabled}">
+                        <a class="page-link" href="#" ${click}>${link.label}</a>
+                     </li>`;
         });
-        
-        // Actualizar botones de margen
-        document.querySelectorAll('.filter-margen-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.margen === 'todos') {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Resetear radio buttons de categoría
-        const categoriaTodos = document.getElementById('categoriaTodos');
-        if (categoriaTodos) categoriaTodos.click();
-        
-        // Limpiar inputs de precio
-        document.getElementById('precioMin').value = '';
-        document.getElementById('precioMax').value = '';
-        
-        // Limpiar búsqueda
-        document.getElementById('searchInput').value = '';
-        
-        // Resetear dropdown de ordenamiento
-        document.querySelectorAll('.sort-option').forEach(opt => {
-            opt.classList.remove('active');
-        });
-        
-        // Actualizar texto del botón de ordenamiento
-        const sortButton = document.querySelector('.dropdown-toggle[data-bs-toggle="dropdown"]');
-        if (sortButton) {
-            sortButton.innerHTML = '<i class="fas fa-sort me-1"></i> Ordenar por';
-        }
-        
-        aplicarFiltros();
+        html += '</ul>';
+        paginacionWrap.innerHTML = html;
+    }
+
+    function mostrarLoader() {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr><td colspan="8" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted mt-2 mb-0">Buscando servicios...</p>
+            </td></tr>`;
+    }
+
+    function mostrarError(msg) {
+        mostrarTabla();
+        const tbody = getTabla();
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr><td colspan="8" class="text-center py-4 text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>${msg}
+            </td></tr>`;
+    }
+
+    // Cambia a la página indicada manteniendo los filtros activos
+    window.cambiarPagina = function (page) {
+        fetchFiltrado(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    
-    // Eventos para filtros de estado
+
+    // Resetea todos los filtros y recarga el index original
+    window.limpiarFiltros = function () {
+        estado = 'todos'; margen = 'todos'; sort = 'nombre_asc';
+        search = ''; precioMin = ''; precioMax = '';
+
+        document.getElementById('searchInput').value = '';
+        document.getElementById('precioMin').value   = '';
+        document.getElementById('precioMax').value   = '';
+
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'todos'));
+        document.querySelectorAll('.filter-margen-btn').forEach(b => b.classList.toggle('active', b.dataset.margen === 'todos'));
+        document.querySelectorAll('.sort-option').forEach(b => b.classList.toggle('active', b.dataset.sort === 'nombre_asc'));
+        document.getElementById('sortLabel').textContent = 'Nombre A-Z';
+
+        window.location.href = "{{ route('servicios.index') }}";
+    };
+
+    // Event listeners
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentEstadoFilter = this.dataset.filter;
-            aplicarFiltros();
+            estado = this.dataset.filter;
+            fetchFiltrado();
         });
     });
-    
-    // Eventos para filtros de margen
+
     document.querySelectorAll('.filter-margen-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-margen-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentMargenFilter = this.dataset.margen;
-            aplicarFiltros();
+            margen = this.dataset.margen;
+            fetchFiltrado();
         });
     });
-    
-    // Evento para aplicar rango de precio
-    document.getElementById('aplicarRangoPrecio').addEventListener('click', function() {
-        precioMin = document.getElementById('precioMin').value ? parseFloat(document.getElementById('precioMin').value) : null;
-        precioMax = document.getElementById('precioMax').value ? parseFloat(document.getElementById('precioMax').value) : null;
-        aplicarFiltros();
-        
-        // Cerrar dropdown (opcional)
-        const dropdown = bootstrap.Dropdown.getInstance(document.querySelector('[data-bs-toggle="dropdown"]'));
-        if (dropdown) dropdown.hide();
-    });
-    
-    // Eventos para ordenamiento
-    document.querySelectorAll('.sort-option').forEach(option => {
-        option.addEventListener('click', function(e) {
+
+    document.querySelectorAll('.sort-option').forEach(opt => {
+        opt.addEventListener('click', function (e) {
             e.preventDefault();
-            
-            // Remover clase active de todas las opciones
-            document.querySelectorAll('.sort-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            
-            // Agregar clase active a la opción seleccionada
+            document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
             this.classList.add('active');
-            
-            // Actualizar el texto del botón dropdown
-            const sortButton = document.querySelector('.dropdown-toggle[data-bs-toggle="dropdown"]');
-            if (sortButton) {
-                const sortText = this.textContent.trim();
-                sortButton.innerHTML = `<i class="fas fa-sort me-1"></i> ${sortText}`;
-            }
-            
-            currentSort = this.dataset.sort;
-            aplicarFiltros();
+            document.getElementById('sortLabel').textContent = this.textContent.trim();
+            sort = this.dataset.sort;
+            fetchFiltrado();
         });
     });
-    
-    // Búsqueda en tiempo real
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(aplicarFiltros, 300);
+
+    document.getElementById('btnAplicarPrecio').addEventListener('click', function () {
+        precioMin = document.getElementById('precioMin').value;
+        precioMax = document.getElementById('precioMax').value;
+        fetchFiltrado();
+        bootstrap.Dropdown.getOrCreateInstance(document.getElementById('precioDropdownBtn')).hide();
     });
-    
-    // Botón limpiar búsqueda
-    document.getElementById('clearSearch').addEventListener('click', function() {
+
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        clearTimeout(searchTimeout);
+        search = this.value;
+        searchTimeout = setTimeout(() => fetchFiltrado(), 350);
+    });
+
+    document.getElementById('clearSearch').addEventListener('click', function () {
         document.getElementById('searchInput').value = '';
-        aplicarFiltros();
+        search = '';
+        fetchFiltrado();
         document.getElementById('searchInput').focus();
     });
-    
-    // Botón limpiar todos los filtros
+
     document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
-    
-    // Inicializar botones activos
-    const estadoBtn = document.querySelector('.filter-btn[data-filter="todos"]');
-    if (estadoBtn) estadoBtn.classList.add('active');
-    
-    const margenBtn = document.querySelector('.filter-margen-btn[data-margen="todos"]');
-    if (margenBtn) margenBtn.classList.add('active');
-    
-    // Agregar tooltips a los botones
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
 });
 
-// Función para abrir imagen en modal
+// Abre el modal con la imagen del servicio ampliada
 function abrirModalImagen(src, titulo) {
-    const modalElement = document.getElementById('modalImagen');
-    const modalSrc = document.getElementById('modalImagenSrc');
-    const modalTitle = document.getElementById('modalImagenTitulo');
-    
-    if (modalElement && modalSrc && modalTitle) {
-        modalSrc.src = src;
-        modalTitle.textContent = titulo || 'Imagen del servicio';
-        
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-    }
+    const el = document.getElementById('modalImagen');
+    if (!el) return;
+    document.getElementById('modalImagenSrc').src            = src;
+    document.getElementById('modalImagenTitulo').textContent = titulo || 'Imagen del servicio';
+    new bootstrap.Modal(el).show();
 }
 </script>
 @endpush

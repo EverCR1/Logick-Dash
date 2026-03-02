@@ -122,6 +122,44 @@ class ProductoController extends Controller
         return $links;
     }
 
+    /**
+     * Filtrar productos via AJAX
+     */
+    public function filter(Request $request)
+    {
+        $params = [
+            'search'       => $request->get('search', ''),
+            'estado'       => $request->get('estado', 'todos'),
+            'stock'        => $request->get('stock', 'todos'),
+            'proveedor_id' => $request->get('proveedor_id', ''),
+            'categoria_id' => $request->get('categoria_id', ''),
+            'sort'         => $request->get('sort', 'nombre_asc'),
+            'page'         => $request->get('page', 1),
+            'per_page'     => 20,
+        ];
+
+        // Limpiar valores vacíos para no contaminar la query
+        $params = array_filter($params, fn($v) => $v !== '' && $v !== 'todos');
+        $params['page']     = $request->get('page', 1);
+        $params['per_page'] = 20;
+
+        $response = $this->apiService->get('productos/filter', $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'success'   => true,
+                'productos' => $data['productos'] ?? [],
+            ]);
+        }
+
+        return response()->json([
+            'success'   => false,
+            'productos' => ['data' => [], 'links' => [], 'total' => 0],
+            'message'   => 'Error al filtrar'
+        ], 500);
+    }
+
     public function create()
     {
         // Obtener proveedores para el select
