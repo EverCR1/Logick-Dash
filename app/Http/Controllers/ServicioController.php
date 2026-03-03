@@ -102,7 +102,7 @@ class ServicioController extends Controller
         $params['page']     = $request->get('page', 1);
         $params['per_page'] = 20;
 
-        $response = $this->apiService->get('servicios/filter', $params);
+        $response = $this->apiService->get('servicios', $params);
 
         if ($response->successful()) {
             $data = $response->json();

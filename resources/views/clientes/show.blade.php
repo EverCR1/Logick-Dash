@@ -179,10 +179,10 @@
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Referencia</th>
+                                    <th>N° Venta</th>
                                     <th>Fecha</th>
-                                    <th>Tipo</th>
-                                    <th>Descripción</th>
+                                    <th>Método Pago</th>
+                                    <th>Observaciones</th>
                                     <th>Total</th>
                                     <th>Estado</th>
                                 </tr>
@@ -192,16 +192,16 @@
                                 <tr>
                                     <td>
                                         <a href="{{ route('ventas.show', $venta['id']) }}">
-                                            {{ $venta['referencia'] }}
+                                            {{ $venta['numero_venta'] }}
                                         </a>
                                     </td>
                                     <td>{{ \Carbon\Carbon::parse($venta['created_at'])->format('d/m/Y') }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $venta['tipo'] == 'producto' ? 'info' : ($venta['tipo'] == 'servicio' ? 'success' : 'warning') }}">
-                                            {{ $venta['tipo'] }}
+                                        <span class="badge bg-info">
+                                            {{ ucfirst($venta['metodo_pago'] ?? 'No especificado') }}
                                         </span>
                                     </td>
-                                    <td>{{ Str::limit($venta['descripcion'], 30) }}</td>
+                                    <td>{{ Str::limit($venta['observaciones'] ?? '', 30) }}</td>
                                     <td>Q{{ number_format($venta['total'], 2) }}</td>
                                     <td>
                                         <span class="badge {{ $venta['estado'] == 'completada' ? 'bg-success' : ($venta['estado'] == 'pendiente' ? 'bg-warning' : 'bg-danger') }}">

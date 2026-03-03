@@ -149,7 +149,7 @@ class VentaController extends Controller
         $params['page']     = $request->get('page', 1);
         $params['per_page'] = 20;
 
-        $response = $this->apiService->get('ventas/filter', $params);
+        $response = $this->apiService->get('ventas', $params);
 
         if ($response->successful()) {
             $data = $response->json();

@@ -55,24 +55,31 @@ class ReporteController extends Controller
         
         $response = $this->apiService->get('reportes/ventas', [
             'fecha_inicio' => $fechaInicio,
-            'fecha_fin' => $fechaFin,
-            'cliente_id' => $request->get('cliente_id'),
-            'vendedor_id' => $request->get('vendedor_id'),
-            'metodo_pago' => $request->get('metodo_pago')
+            'fecha_fin'    => $fechaFin,
+            'cliente_id'   => $request->get('cliente_id'),
+            'vendedor_id'  => $request->get('vendedor_id'),
+            'metodo_pago'  => $request->get('metodo_pago')
         ]);
 
         $data = $response->successful() ? $response->json() : [
             'ventas' => [],
             'resumen' => [
-                'total_ventas' => 0,
-                'monto_total' => 0,
-                'promedio_venta' => 0,
+                'total_ventas'    => 0,
+                'monto_total'     => 0,
+                'promedio_venta'  => 0,
                 'por_metodo_pago' => []
             ]
         ];
 
-        // Obtener datos para filtros
-        $clientes = $this->getClientes();
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ventas'  => $data['ventas']  ?? [],
+                'resumen' => $data['resumen'] ?? []
+            ]);
+        }
+
+        // Solo cargar clientes y vendedores para la vista inicial
+        $clientes  = $this->getClientes();
         $vendedores = $this->getVendedores();
 
         return view('reportes.ventas', compact('data', 'fechaInicio', 'fechaFin', 'clientes', 'vendedores'));
@@ -84,19 +91,24 @@ class ReporteController extends Controller
     public function productosMasVendidos(Request $request)
     {
         $fechaInicio = $request->get('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
-        $fechaFin = $request->get('fecha_fin', now()->endOfMonth()->format('Y-m-d'));
+        $fechaFin    = $request->get('fecha_fin',    now()->endOfMonth()->format('Y-m-d'));
         
         $response = $this->apiService->get('reportes/productos-mas-vendidos', [
             'fecha_inicio' => $fechaInicio,
-            'fecha_fin' => $fechaFin,
-            'limite' => $request->get('limite', 20)
+            'fecha_fin'    => $fechaFin,
+            'limite'       => $request->get('limite', 20)
         ]);
 
         $data = $response->successful() ? $response->json() : ['productos' => []];
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'productos' => $data['productos'] ?? []
+            ]);
+        }
+
         return view('reportes.productos-mas-vendidos', compact('data', 'fechaInicio', 'fechaFin'));
     }
-
     /**
      * Reporte de inventario
      */
@@ -132,15 +144,21 @@ class ReporteController extends Controller
     public function topClientes(Request $request)
     {
         $fechaInicio = $request->get('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
-        $fechaFin = $request->get('fecha_fin', now()->endOfMonth()->format('Y-m-d'));
+        $fechaFin    = $request->get('fecha_fin',    now()->endOfMonth()->format('Y-m-d'));
         
         $response = $this->apiService->get('reportes/top-clientes', [
             'fecha_inicio' => $fechaInicio,
-            'fecha_fin' => $fechaFin,
-            'limite' => $request->get('limite', 10)
+            'fecha_fin'    => $fechaFin,
+            'limite'       => $request->get('limite', 10)
         ]);
 
         $data = $response->successful() ? $response->json() : ['clientes' => []];
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'clientes' => $data['clientes'] ?? []
+            ]);
+        }
 
         return view('reportes.top-clientes', compact('data', 'fechaInicio', 'fechaFin'));
     }
@@ -151,14 +169,20 @@ class ReporteController extends Controller
     public function rendimientoVendedores(Request $request)
     {
         $fechaInicio = $request->get('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
-        $fechaFin = $request->get('fecha_fin', now()->endOfMonth()->format('Y-m-d'));
+        $fechaFin    = $request->get('fecha_fin',    now()->endOfMonth()->format('Y-m-d'));
         
         $response = $this->apiService->get('reportes/rendimiento-vendedores', [
             'fecha_inicio' => $fechaInicio,
-            'fecha_fin' => $fechaFin
+            'fecha_fin'    => $fechaFin
         ]);
 
         $data = $response->successful() ? $response->json() : ['vendedores' => []];
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'vendedores' => $data['vendedores'] ?? []
+            ]);
+        }
 
         return view('reportes.rendimiento-vendedores', compact('data', 'fechaInicio', 'fechaFin'));
     }
@@ -168,14 +192,16 @@ class ReporteController extends Controller
      */
     private function getClientes()
     {
-        $response = $this->apiService->get('clientes', ['por_pagina' => 100]);
-        return $response->successful() ? ($response->json()['clientes']['data'] ?? []) : [];
+        $response = $this->apiService->get('clientes', ['per_page' => 100]);
+        $json = $response->successful() ? ($response->json()['clientes'] ?? []) : [];
+        return $json['data'] ?? (isset($json[0]) ? $json : []);
     }
 
     private function getVendedores()
     {
-        $response = $this->apiService->get('users', ['rol' => 'vendedor']);
-        return $response->successful() ? ($response->json()['users'] ?? []) : [];
+        $response = $this->apiService->get('users', ['rol' => 'vendedor', 'per_page' => 100]);
+        $json = $response->successful() ? ($response->json()['users'] ?? []) : [];
+        return $json['data'] ?? (isset($json[0]) ? $json : []);
     }
 
     private function getCategorias()
@@ -195,8 +221,9 @@ class ReporteController extends Controller
 
     private function getProveedores()
     {
-        $response = $this->apiService->get('proveedores');
-        return $response->successful() ? ($response->json()['proveedores'] ?? []) : [];
+        $response = $this->apiService->get('proveedores', ['per_page' => 100]);
+        $json = $response->successful() ? ($response->json()['proveedores'] ?? []) : [];
+        return $json['data'] ?? (isset($json[0]) ? $json : []);
     }
 
     /**
@@ -206,7 +233,11 @@ class ReporteController extends Controller
     {
         try {
             // Obtener TODAS las ventas (sin filtro de fecha en la API)
-            $response = $this->apiService->get('ventas');
+            $response = $this->apiService->get('ventas', [
+                'fecha_inicio' => now()->subDays(30)->format('Y-m-d'),
+                'fecha_fin'    => now()->format('Y-m-d'),
+                'per_page'     => 500
+            ]);
             
             $ventasPorDia = [];
             

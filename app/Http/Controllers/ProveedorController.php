@@ -14,10 +14,15 @@ class ProveedorController extends Controller
         $this->apiService = $apiService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $response = $this->apiService->get('proveedores');
-        
+        $params = [
+            'page'     => $request->get('page', 1),
+            'per_page' => 20,
+        ];
+
+        $response = $this->apiService->get('proveedores', $params);
+
         if ($response->successful()) {
             $proveedores = $response->json()['proveedores'] ?? [];
         } else {
@@ -39,7 +44,7 @@ class ProveedorController extends Controller
             'per_page' => 20,
         ];
 
-        $response = $this->apiService->get('proveedores/filter', $params);
+        $response = $this->apiService->get('proveedores', $params);
 
         if ($response->successful()) {
             $data = $response->json();

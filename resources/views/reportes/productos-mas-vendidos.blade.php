@@ -179,167 +179,173 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let currentPeriodo = 'hoy';
+    let currentPeriodo = 'mes';
     let fechaInicio = document.getElementById('fechaInicio').value;
     let fechaFin = document.getElementById('fechaFin').value;
-    let limiteFilter = document.getElementById('limiteFilter').value;
+    let limiteFilter = '20';
     let currentSearch = '';
-    
-    // Inicializar
-    actualizarFechasPorPeriodo('hoy');
-    
-    // Eventos para filtros de período
+    let isLoading = false;
+
+    function getFechasPorPeriodo(periodo) {
+        const hoy = new Date();
+        const pad = d => d.toISOString().split('T')[0];
+        switch(periodo) {
+            case 'hoy':
+                return { inicio: pad(hoy), fin: pad(hoy) };
+            case 'semana':
+                const inicioSemana = new Date(hoy);
+                inicioSemana.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
+                return { inicio: pad(inicioSemana), fin: pad(hoy) };
+            case 'mes':
+                return { inicio: pad(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), fin: pad(hoy) };
+            default:
+                return {
+                    inicio: document.getElementById('fechaInicio').value,
+                    fin: document.getElementById('fechaFin').value
+                };
+        }
+    }
+
+    function cargarProductos() {
+        if (isLoading) return;
+        isLoading = true;
+
+        const tbody = document.querySelector('#productosTable tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando productos...</p>
+                </td>
+            </tr>`;
+
+        const params = new URLSearchParams({
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            limite: limiteFilter
+        });
+
+        fetch(`{{ route('reportes.productos-mas-vendidos') }}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(response => {
+            const productos = response.productos ?? [];
+            renderTabla(productos);
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Error al cargar datos</td></tr>`;
+        })
+        .finally(() => { isLoading = false; });
+    }
+
+    function renderTabla(productos) {
+        const tbody = document.querySelector('#productosTable tbody');
+
+        if (!productos || productos.length === 0) {
+            tbody.innerHTML = `
+                <tr id="no-productos-row">
+                    <td colspan="8" class="text-center py-4">
+                        <i class="fas fa-chart-bar fa-3x text-muted mb-3 d-block"></i>
+                        <h5>No hay datos de ventas en el período seleccionado</h5>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = productos.map((item, index) => {
+            const producto = item.producto ?? {};
+            const stock = producto.stock ?? 0;
+            const stockMinimo = producto.stock_minimo ?? 1;
+            const stockClass = stock <= 0 ? 'secondary' : (stock <= stockMinimo ? 'danger' : 'success');
+
+            const categorias = (producto.categorias ?? [])
+                .map(c => `<span class="badge bg-secondary">${c.nombre ?? ''}</span>`)
+                .join(' ') || 'N/A';
+
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>
+                        <strong>${producto.nombre ?? 'N/A'}</strong>
+                        <br><small class="text-muted">${producto.marca ?? ''}</small>
+                    </td>
+                    <td>${producto.sku ?? 'N/A'}</td>
+                    <td>${categorias}</td>
+                    <td><span class="badge bg-info">${item.veces_vendido ?? 0}</span></td>
+                    <td>${item.total_unidades ?? 0}</td>
+                    <td><strong>Q${parseFloat(item.total_vendido ?? 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></td>
+                    <td><span class="badge bg-${stockClass}">${stock}</span></td>
+                </tr>`;
+        }).join('');
+
+        // Aplicar búsqueda si hay texto
+        if (currentSearch) aplicarBusquedaLocal();
+    }
+
+    function aplicarBusquedaLocal() {
+        const rows = document.querySelectorAll('#productosTable tbody tr');
+        rows.forEach(row => {
+            const texto = row.textContent.toLowerCase();
+            row.style.display = (!currentSearch || texto.includes(currentSearch)) ? '' : 'none';
+        });
+    }
+
+    // ── Eventos ──────────────────────────────────────────
+
     document.querySelectorAll('.filter-periodo-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.filter-periodo-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentPeriodo = this.dataset.periodo;
-            
+
             if (currentPeriodo !== 'personalizado') {
-                actualizarFechasPorPeriodo(currentPeriodo);
-                aplicarFiltros();
+                const fechas = getFechasPorPeriodo(currentPeriodo);
+                fechaInicio = fechas.inicio;
+                fechaFin    = fechas.fin;
+                document.getElementById('fechaInicio').value = fechaInicio;
+                document.getElementById('fechaFin').value    = fechaFin;
+                cargarProductos();
             }
         });
     });
-    
-    function actualizarFechasPorPeriodo(periodo) {
-        const hoy = new Date();
-        let fechaInicioInput = document.getElementById('fechaInicio');
-        let fechaFinInput = document.getElementById('fechaFin');
-        
-        switch(periodo) {
-            case 'hoy':
-                fechaInicioInput.value = hoy.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'semana':
-                const inicioSemana = new Date(hoy);
-                inicioSemana.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
-                fechaInicioInput.value = inicioSemana.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'mes':
-                const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                fechaInicioInput.value = inicioMes.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-        }
-        
-        fechaInicio = fechaInicioInput.value;
-        fechaFin = fechaFinInput.value;
-    }
-    
+
     document.getElementById('btnAplicarFiltros').addEventListener('click', function() {
-        fechaInicio = document.getElementById('fechaInicio').value;
-        fechaFin = document.getElementById('fechaFin').value;
+        fechaInicio  = document.getElementById('fechaInicio').value;
+        fechaFin     = document.getElementById('fechaFin').value;
         limiteFilter = document.getElementById('limiteFilter').value;
-        aplicarFiltros();
+        cargarProductos();
     });
-    
-    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
-    
+
     let searchTimeout;
     document.getElementById('searchInput').addEventListener('keyup', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             currentSearch = this.value.toLowerCase().trim();
-            aplicarFiltros();
+            aplicarBusquedaLocal();
         }, 300);
     });
-    
+
     document.getElementById('clearSearch').addEventListener('click', function() {
         document.getElementById('searchInput').value = '';
         currentSearch = '';
-        aplicarFiltros();
-        document.getElementById('searchInput').focus();
+        aplicarBusquedaLocal();
     });
-    
-    function aplicarFiltros() {
-        const tbody = document.querySelector('#productosTable tbody');
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        rows = rows.filter(row => !row.id || row.id !== 'no-productos-row');
-        
-        let visibleRows = [];
-        
-        rows.forEach(row => {
-            const rowFechaInicio = new Date(fechaInicio);
-            const rowFechaFin = new Date(fechaFin);
-            const searchData = row.dataset.search || '';
-            
-            const searchMatch = !currentSearch || searchData.includes(currentSearch);
-            
-            if (searchMatch) {
-                visibleRows.push(row);
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Aplicar límite
-        if (limiteFilter > 0) {
-            visibleRows = visibleRows.slice(0, parseInt(limiteFilter));
-        }
-        
-        // Reordenar tabla
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-        
-        visibleRows.forEach((row, index) => {
-            row.style.display = '';
-            const firstCell = row.querySelector('td:first-child');
-            if (firstCell) {
-                firstCell.textContent = index + 1;
-            }
-            tbody.appendChild(row);
-        });
-        
-        hiddenRows.forEach(row => tbody.appendChild(row));
-        
-        mostrarMensajeNoResultados(visibleRows.length, rows.length);
-    }
-    
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const tbody = document.querySelector('#productosTable tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="8" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron productos</h5>
-                        <p class="text-muted mb-3">Intenta con otros filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
-    }
-    
 
-});
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
 
     window.limpiarFiltros = function() {
-        document.querySelector('.filter-periodo-btn[data-periodo="hoy"]').click();
         document.getElementById('limiteFilter').value = '20';
-        document.getElementById('searchInput').value = '';
+        document.getElementById('searchInput').value  = '';
+        limiteFilter  = '20';
         currentSearch = '';
-        aplicarFiltros();
+        document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
     };
+
+    // Carga inicial
+    document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
+});
 
 function exportarReporte() {
     alert('Funcionalidad de exportación próximamente');

@@ -77,8 +77,11 @@ class ProductoController extends Controller
         
         // Obtener proveedores para filtros
         $proveedoresResponse = $this->apiService->get('proveedores');
-        $proveedoresFiltro = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
-        
+        $proveedoresJson     = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
+
+        // El índice ahora es paginado — extraer el array data si existe
+        $proveedoresFiltro = $proveedoresJson['data'] ?? (isset($proveedoresJson[0]) ? $proveedoresJson : []);
+
         $proveedoresParaFiltros = [];
         if (!empty($proveedoresFiltro)) {
             foreach ($proveedoresFiltro as $proveedor) {
@@ -143,7 +146,7 @@ class ProductoController extends Controller
         $params['page']     = $request->get('page', 1);
         $params['per_page'] = 20;
 
-        $response = $this->apiService->get('productos/filter', $params);
+        $response = $this->apiService->get('productos', $params);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -164,7 +167,8 @@ class ProductoController extends Controller
     {
         // Obtener proveedores para el select
         $proveedoresResponse = $this->apiService->get('proveedores');
-        $proveedores = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
+        $proveedoresJson     = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
+        $proveedores         = $proveedoresJson['data'] ?? (isset($proveedoresJson[0]) ? $proveedoresJson : []);
         
         // Obtener categorías para el select múltiple
         $categoriasResponse = $this->apiService->get('categorias-flat');
@@ -499,8 +503,8 @@ class ProductoController extends Controller
 
         // Obtener proveedores
         $proveedoresResponse = $this->apiService->get('proveedores');
-        $proveedores = $proveedoresResponse->successful() ? 
-            ($proveedoresResponse->json()['proveedores'] ?? []) : [];
+        $proveedoresJson     = $proveedoresResponse->successful() ? $proveedoresResponse->json()['proveedores'] ?? [] : [];
+        $proveedores         = $proveedoresJson['data'] ?? (isset($proveedoresJson[0]) ? $proveedoresJson : []);
         
         // Obtener categorías
         $categoriasResponse = $this->apiService->get('categorias-flat');

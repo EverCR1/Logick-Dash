@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/DashboardController.php
 
 namespace App\Http\Controllers;
 
@@ -139,7 +138,7 @@ class DashboardController extends Controller
             'stock_bajo' => fn() => $this->apiService->get('productos/stock-bajo?limit=10'),
             'top_clientes' => fn() => $this->apiService->get('reportes/top-clientes', ['limite' => 5]),
             'creditos' => fn() => $this->apiService->get('creditos?estadisticas=true&limit=1'),
-            'proveedores' => fn() => $this->apiService->get('proveedores?limit=100'),
+            'proveedores' => fn() => $this->apiService->get('proveedores', ['per_page' => 100]),
             'categorias' => fn() => $this->apiService->get('categorias-flat'),
             'servicios' => fn() => $this->apiService->get('servicios?limit=100'),
             'reporte_ventas' => fn() => $this->apiService->get('reportes/ventas', [
@@ -147,7 +146,7 @@ class DashboardController extends Controller
                 'fecha_fin' => now()->format('Y-m-d'),
                 'limit' => 1
             ]),
-            'usuarios' => fn() => $this->apiService->get('users?limit=100')
+            'usuarios' => fn() => $this->apiService->get('users', ['per_page' => 100])
         ];
 
         $responses = [];
@@ -235,8 +234,12 @@ class DashboardController extends Controller
     private function processProveedoresResponse($response, &$stats)
     {
         if (!$response || !$response->successful()) return;
-        $data = $response->json()['proveedores'] ?? [];
-        $stats['total_proveedores'] = count($data);
+        $json = $response->json()['proveedores'] ?? [];
+
+        // El index ahora devuelve paginado — extraer data si existe
+        $data = $json['data'] ?? (isset($json[0]) ? $json : []);
+
+        $stats['total_proveedores']   = $json['total'] ?? count($data);
         $stats['proveedores_activos'] = count(array_filter($data, fn($p) => ($p['estado'] ?? '') === 'activo'));
     }
 
@@ -270,16 +273,20 @@ class DashboardController extends Controller
     private function processUsuariosResponse($response, &$stats)
     {
         if (!$response || !$response->successful()) return;
-        $data = $response->json()['users'] ?? [];
-        
+        $json = $response->json()['users'] ?? [];
+
+        // Extraer array de usuarios del objeto paginado
+        $data = $json['data'] ?? (isset($json[0]) ? $json : []);
+
         $stats['usuarios_por_rol'] = [
             'administrador' => 0,
-            'vendedor' => 0,
-            'analista' => 0
+            'vendedor'      => 0,
+            'analista'      => 0
         ];
-        
+
         foreach ($data as $usuario) {
-            $rol = $usuario['rol'] ?? '';
+            // La API puede devolver 'rol' o 'role'
+            $rol = $usuario['rol'] ?? $usuario['rol'] ?? '';
             if (isset($stats['usuarios_por_rol'][$rol])) {
                 $stats['usuarios_por_rol'][$rol]++;
             }

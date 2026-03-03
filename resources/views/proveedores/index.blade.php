@@ -51,7 +51,13 @@
             <div id="tabla-container">
 
                 @php
-                    $proveedoresData = is_array($proveedores) ? $proveedores : [];
+                    $proveedoresData  = $proveedores['data']  ?? (isset($proveedores[0]) ? $proveedores : []);
+                    $proveedoresLinks = $proveedores['links'] ?? [];
+                    $proveedoresMeta  = [
+                        'total' => $proveedores['total'] ?? 0,
+                        'from'  => $proveedores['from']  ?? 0,
+                        'to'    => $proveedores['to']    ?? 0,
+                    ];
                 @endphp
 
                 {{-- Empty state --}}
@@ -174,10 +180,25 @@
                      id="paginacion-container"
                      style="{{ empty($proveedoresData) ? 'display:none;' : '' }}">
                     <div class="text-muted" id="contador-wrap">
-                        Mostrando {{ count($proveedoresData) }} proveedores
+                        @if(($proveedoresMeta['total'] ?? 0) > 0)
+                            Mostrando {{ $proveedoresMeta['from'] }} - {{ $proveedoresMeta['to'] }} de
+                            <strong>{{ $proveedoresMeta['total'] }}</strong> proveedores
+                        @else
+                            Mostrando {{ count($proveedoresData) }} proveedores
+                        @endif
                     </div>
                     <nav aria-label="Page navigation">
-                        <div id="paginacion-wrap"></div>
+                        <div id="paginacion-wrap">
+                            <ul class="pagination mb-0">
+                                @foreach($proveedoresLinks as $link)
+                                    @if(is_array($link))
+                                    <li class="page-item {{ ($link['active'] ?? false) ? 'active' : '' }} {{ empty($link['url']) ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ $link['url'] ?? '#' }}">{!! $link['label'] ?? '' !!}</a>
+                                    </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                     </nav>
                 </div>
 

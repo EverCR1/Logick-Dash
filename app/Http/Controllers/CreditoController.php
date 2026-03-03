@@ -99,7 +99,7 @@ class CreditoController extends Controller
             'per_page' => 20,
         ];
 
-        $response = $this->apiService->get('creditos/filter', $params);
+        $response = $this->apiService->get('creditos', $params);
 
         if ($response->successful()) {
             $data = $response->json();

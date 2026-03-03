@@ -277,258 +277,246 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let currentPeriodo = 'hoy';
+    let currentPeriodo = 'mes'; // Iniciar en mes para que haya datos visibles
     let fechaInicio = document.getElementById('fechaInicio').value;
     let fechaFin = document.getElementById('fechaFin').value;
-    let clienteFilter = document.getElementById('clienteFilter').value;
-    let vendedorFilter = document.getElementById('vendedorFilter').value;
-    let metodoPagoFilter = document.getElementById('metodoPagoFilter').value;
-    let estadoFilter = document.getElementById('estadoFilter').value;
+    let clienteFilter = '';
+    let vendedorFilter = '';
+    let metodoPagoFilter = '';
+    let estadoFilter = 'todos';
     let currentSearch = '';
-    
-    // Inicializar
-    actualizarFechasPorPeriodo('hoy');
-    
-    // Eventos para filtros de período
+    let isLoading = false;
+
+    // Función para obtener fechas según período
+    function getFechasPorPeriodo(periodo) {
+        const hoy = new Date();
+        const pad = d => d.toISOString().split('T')[0];
+
+        switch(periodo) {
+            case 'hoy':
+                return { inicio: pad(hoy), fin: pad(hoy) };
+            case 'semana':
+                const inicioSemana = new Date(hoy);
+                inicioSemana.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
+                return { inicio: pad(inicioSemana), fin: pad(hoy) };
+            case 'mes':
+                const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                return { inicio: pad(inicioMes), fin: pad(hoy) };
+            default:
+                return { 
+                    inicio: document.getElementById('fechaInicio').value, 
+                    fin: document.getElementById('fechaFin').value 
+                };
+        }
+    }
+
+    // Cargar ventas desde la API
+    function cargarVentas() {
+        if (isLoading) return;
+        isLoading = true;
+
+        const tbody = document.querySelector('#ventasTable tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando ventas...</p>
+                </td>
+            </tr>
+        `;
+
+        const params = new URLSearchParams({
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+        });
+
+        if (clienteFilter)     params.append('cliente_id', clienteFilter);
+        if (vendedorFilter)    params.append('vendedor_id', vendedorFilter);
+        if (metodoPagoFilter)  params.append('metodo_pago', metodoPagoFilter);
+        if (estadoFilter && estadoFilter !== 'todos') params.append('estado', estadoFilter);
+
+        fetch(`{{ route('reportes.ventas') }}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(response => {
+            if (response.ventas !== undefined) {
+                // Respuesta con ventas directas (array o paginado)
+                const ventas = response.ventas?.data ?? response.ventas ?? [];
+                renderTabla(ventas);
+                actualizarResumen(response.resumen ?? {}, ventas);
+            } else {
+                renderTabla([]);
+                actualizarResumen({}, []);
+            }
+        })
+        .catch(err => {
+            console.error('Error cargando ventas:', err);
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar datos</td></tr>`;
+        })
+        .finally(() => { isLoading = false; });
+    }
+
+    function renderTabla(ventas) {
+        const tbody = document.querySelector('#ventasTable tbody');
+
+        if (!ventas || ventas.length === 0) {
+            tbody.innerHTML = `
+                <tr id="no-ventas-row">
+                    <td colspan="8" class="text-center py-4">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3 d-block"></i>
+                        <h5>No hay ventas en el período seleccionado</h5>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = ventas.map(venta => {
+            const fecha = new Date(venta.created_at).toLocaleString('es-GT', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const estadoBadge = venta.estado === 'completada'
+                ? '<span class="badge bg-success">Completada</span>'
+                : `<span class="badge bg-danger">${venta.estado ?? 'N/A'}</span>`;
+
+            return `
+                <tr>
+                    <td>#${venta.id}</td>
+                    <td>${fecha}</td>
+                    <td>${venta.cliente?.nombre ?? 'N/A'}</td>
+                    <td>${(venta.vendedor?.nombres ?? '')} ${(venta.vendedor?.apellidos ?? '')}</td>
+                    <td><span class="badge bg-info text-capitalize">${venta.metodo_pago ?? 'N/A'}</span></td>
+                    <td><strong>Q${parseFloat(venta.total ?? 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></td>
+                    <td>${estadoBadge}</td>
+                    <td>
+                        <a href="/ventas/${venta.id}" class="btn btn-sm btn-info" target="_blank">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        // Aplicar búsqueda local si hay texto
+        if (currentSearch) aplicarBusquedaLocal();
+    }
+
+    function actualizarResumen(resumen, ventas) {
+        // Calcular desde los datos recibidos si no vienen en resumen
+        const total = resumen.total_ventas ?? ventas.length;
+        const monto = resumen.monto_total ?? ventas.reduce((s, v) => s + parseFloat(v.total ?? 0), 0);
+        const promedio = total > 0 ? monto / total : 0;
+        const maximo = resumen.venta_maxima ?? Math.max(...ventas.map(v => parseFloat(v.total ?? 0)), 0);
+
+        document.getElementById('totalVentas').textContent = total;
+        document.getElementById('montoTotal').textContent = 'Q' + monto.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        document.getElementById('promedioVenta').textContent = 'Q' + promedio.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        document.getElementById('ventaMaxima').textContent = 'Q' + maximo.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+
+        // Métodos de pago
+        const metodos = resumen.por_metodo_pago ?? {};
+        actualizarMetodosPago(metodos);
+    }
+
+    function actualizarMetodosPago(metodosPago) {
+        const container = document.getElementById('metodosPagoContent');
+        if (!container) return;
+
+        const entries = typeof metodosPago === 'object' ? Object.entries(metodosPago) : [];
+
+        if (entries.length === 0) {
+            container.innerHTML = `<div class="col-12"><p class="text-muted text-center mb-0">No hay ventas en el período</p></div>`;
+            return;
+        }
+
+        container.innerHTML = entries.map(([metodo, info]) => `
+            <div class="col-md-3 mb-2">
+                <div class="border rounded p-3">
+                    <h6 class="text-capitalize mb-2">${metodo}</h6>
+                    <p class="mb-1">Cantidad: <span class="badge bg-info">${info.cantidad ?? 0}</span></p>
+                    <strong>Q${parseFloat(info.total ?? 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong>
+                </div>
+            </div>`).join('');
+    }
+
+    function aplicarBusquedaLocal() {
+        const rows = document.querySelectorAll('#ventasTable tbody tr');
+        rows.forEach(row => {
+            const texto = row.textContent.toLowerCase();
+            row.style.display = (!currentSearch || texto.includes(currentSearch)) ? '' : 'none';
+        });
+    }
+
+    // ── Eventos ──────────────────────────────────────────
+
+    // Botones de período
     document.querySelectorAll('.filter-periodo-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.filter-periodo-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentPeriodo = this.dataset.periodo;
-            
+
             if (currentPeriodo !== 'personalizado') {
-                actualizarFechasPorPeriodo(currentPeriodo);
-                aplicarFiltros();
+                const fechas = getFechasPorPeriodo(currentPeriodo);
+                fechaInicio = fechas.inicio;
+                fechaFin = fechas.fin;
+                document.getElementById('fechaInicio').value = fechaInicio;
+                document.getElementById('fechaFin').value = fechaFin;
+                cargarVentas();
             }
         });
     });
-    
-    // Función para actualizar fechas según período
-    function actualizarFechasPorPeriodo(periodo) {
-        const hoy = new Date();
-        let fechaInicioInput = document.getElementById('fechaInicio');
-        let fechaFinInput = document.getElementById('fechaFin');
-        
-        switch(periodo) {
-            case 'hoy':
-                fechaInicioInput.value = hoy.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'semana':
-                const inicioSemana = new Date(hoy);
-                inicioSemana.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
-                fechaInicioInput.value = inicioSemana.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'mes':
-                const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                fechaInicioInput.value = inicioMes.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-        }
-        
-        fechaInicio = fechaInicioInput.value;
-        fechaFin = fechaFinInput.value;
-    }
-    
-    // Botón aplicar filtros
+
+    // Aplicar filtros avanzados
     document.getElementById('btnAplicarFiltros').addEventListener('click', function() {
-        actualizarValoresFiltros();
-        aplicarFiltros();
+        fechaInicio = document.getElementById('fechaInicio').value;
+        fechaFin    = document.getElementById('fechaFin').value;
+        clienteFilter     = document.getElementById('clienteFilter').value;
+        vendedorFilter    = document.getElementById('vendedorFilter').value;
+        metodoPagoFilter  = document.getElementById('metodoPagoFilter').value;
+        estadoFilter      = document.getElementById('estadoFilter').value;
+        cargarVentas();
     });
-    
-    // Botón limpiar filtros
-    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
-    
-    // Búsqueda en tiempo real
+
+    // Búsqueda local en tiempo real (no requiere fetch)
     let searchTimeout;
     document.getElementById('searchInput').addEventListener('keyup', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             currentSearch = this.value.toLowerCase().trim();
-            aplicarFiltros();
+            aplicarBusquedaLocal();
         }, 300);
     });
-    
-    // Botón limpiar búsqueda
+
     document.getElementById('clearSearch').addEventListener('click', function() {
         document.getElementById('searchInput').value = '';
         currentSearch = '';
-        aplicarFiltros();
-        document.getElementById('searchInput').focus();
+        aplicarBusquedaLocal();
+        this.previousElementSibling.focus();
     });
-    
-    // Función para actualizar valores de filtros
-    function actualizarValoresFiltros() {
-        fechaInicio = document.getElementById('fechaInicio').value;
-        fechaFin = document.getElementById('fechaFin').value;
-        clienteFilter = document.getElementById('clienteFilter').value;
-        vendedorFilter = document.getElementById('vendedorFilter').value;
-        metodoPagoFilter = document.getElementById('metodoPagoFilter').value;
-        estadoFilter = document.getElementById('estadoFilter').value;
-    }
-    
-    // Función para aplicar todos los filtros
-    function aplicarFiltros() {
-        const tbody = document.querySelector('#ventasTable tbody');
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Excluir fila de no resultados
-        rows = rows.filter(row => !row.id || row.id !== 'no-ventas-row');
-        
-        let totalVentas = 0;
-        let montoTotal = 0;
-        let ventaMaxima = 0;
-        let metodosPago = {};
-        
-        rows.forEach(row => {
-            const fecha = row.dataset.fecha;
-            const clienteId = row.dataset.clienteId;
-            const vendedorId = row.dataset.vendedorId;
-            const metodoPago = row.dataset.metodoPago;
-            const estado = row.dataset.estado;
-            const total = parseFloat(row.dataset.total) || 0;
-            const searchData = row.dataset.search || '';
-            
-            // Filtrar por fecha
-            let fechaMatch = true;
-            if (fechaInicio && fechaFin) {
-                const rowFecha = new Date(fecha).toISOString().split('T')[0];
-                fechaMatch = rowFecha >= fechaInicio && rowFecha <= fechaFin;
-            }
-            
-            // Filtro de cliente
-            const clienteMatch = !clienteFilter || clienteId === clienteFilter;
-            
-            // Filtro de vendedor
-            const vendedorMatch = !vendedorFilter || vendedorId === vendedorFilter;
-            
-            // Filtro de método de pago
-            const metodoMatch = !metodoPagoFilter || metodoPago === metodoPagoFilter;
-            
-            // Filtro de estado
-            const estadoMatch = estadoFilter === 'todos' || !estadoFilter || estado === estadoFilter;
-            
-            // Filtro de búsqueda
-            const searchMatch = !currentSearch || searchData.includes(currentSearch);
-            
-            const matches = fechaMatch && clienteMatch && vendedorMatch && metodoMatch && estadoMatch && searchMatch;
-            
-            if (matches) {
-                row.style.display = '';
-                totalVentas++;
-                montoTotal += total;
-                if (total > ventaMaxima) ventaMaxima = total;
-                
-                // Contar por método de pago
-                if (metodoPago) {
-                    if (!metodosPago[metodoPago]) {
-                        metodosPago[metodoPago] = { cantidad: 0, total: 0 };
-                    }
-                    metodosPago[metodoPago].cantidad++;
-                    metodosPago[metodoPago].total += total;
-                }
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Actualizar resumen
-        document.getElementById('totalVentas').textContent = totalVentas;
-        document.getElementById('montoTotal').textContent = 'Q' + montoTotal.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-        document.getElementById('promedioVenta').textContent = totalVentas > 0 ? 'Q' + (montoTotal / totalVentas).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') : 'Q0.00';
-        document.getElementById('ventaMaxima').textContent = 'Q' + ventaMaxima.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-        
-        // Actualizar métodos de pago
-        actualizarMetodosPago(metodosPago);
-        
-        // Mostrar mensaje si no hay resultados
-        mostrarMensajeNoResultados(totalVentas, rows.length);
-    }
-    
-    // Función para actualizar métodos de pago
-    function actualizarMetodosPago(metodosPago) {
-        const container = document.getElementById('metodosPagoContent');
-        if (!container) return;
-        
-        if (Object.keys(metodosPago).length === 0) {
-            container.innerHTML = `
-                <div class="col-12">
-                    <p class="text-muted text-center mb-0">No hay ventas en el período seleccionado</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        for (const [metodo, info] of Object.entries(metodosPago)) {
-            html += `
-                <div class="col-md-3 mb-2">
-                    <div class="border rounded p-3">
-                        <h6 class="text-capitalize mb-2">${metodo}</h6>
-                        <p class="mb-1">Cantidad: <span class="badge bg-info">${info.cantidad}</span></p>
-                        <strong>Q${info.total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong>
-                    </div>
-                </div>
-            `;
-        }
-        container.innerHTML = html;
-    }
-    
-    // Función para mostrar mensaje cuando no hay resultados
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const tbody = document.querySelector('#ventasTable tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="8" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron ventas</h5>
-                        <p class="text-muted mb-3">Intenta con otros filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
-    }
-    
 
-});
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
 
-    // Función para limpiar filtros
+    // limpiarFiltros DENTRO del scope
     window.limpiarFiltros = function() {
-        // Resetear período a hoy
-        document.querySelector('.filter-periodo-btn[data-periodo="hoy"]').click();
-        
-        // Limpiar selects
-        document.getElementById('clienteFilter').value = '';
-        document.getElementById('vendedorFilter').value = '';
-        document.getElementById('metodoPagoFilter').value = '';
-        document.getElementById('estadoFilter').value = 'todos';
-        
-        // Limpiar búsqueda
-        document.getElementById('searchInput').value = '';
-        currentSearch = '';
-        
-        actualizarValoresFiltros();
-        aplicarFiltros();
+        document.getElementById('clienteFilter').value     = '';
+        document.getElementById('vendedorFilter').value    = '';
+        document.getElementById('metodoPagoFilter').value  = '';
+        document.getElementById('estadoFilter').value      = 'todos';
+        document.getElementById('searchInput').value       = '';
+        clienteFilter = vendedorFilter = metodoPagoFilter = currentSearch = '';
+        estadoFilter  = 'todos';
+
+        // Activar botón "Mes" y recargar
+        document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
     };
 
-// Función para exportar (placeholder)
+    // Carga inicial con "Este mes"
+    document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
+});
+
 function exportarReporte() {
     alert('Funcionalidad de exportación próximamente');
-    // window.location.href = '#';
 }
 </script>
 @endpush

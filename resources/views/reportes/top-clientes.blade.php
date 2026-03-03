@@ -193,198 +193,188 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let currentPeriodo = 'hoy';
-    let fechaInicio = document.getElementById('fechaInicio').value;
-    let fechaFin = document.getElementById('fechaFin').value;
-    let limiteFilter = document.getElementById('limiteFilter').value;
-    let tipoFilter = document.getElementById('tipoFilter').value;
-    let estadoFilter = document.getElementById('estadoFilter').value;
-    let currentSearch = '';
-    
-    actualizarFechasPorPeriodo('hoy');
-    
+    let currentPeriodo = 'mes';
+    let fechaInicio    = document.getElementById('fechaInicio').value;
+    let fechaFin       = document.getElementById('fechaFin').value;
+    let limiteFilter   = '10';
+    let tipoFilter     = '';
+    let estadoFilter   = 'todos';
+    let currentSearch  = '';
+    let isLoading      = false;
+
+    function getFechasPorPeriodo(periodo) {
+        const hoy = new Date();
+        const pad = d => d.toISOString().split('T')[0];
+        switch(periodo) {
+            case 'hoy':
+                return { inicio: pad(hoy), fin: pad(hoy) };
+            case 'semana':
+                const s = new Date(hoy);
+                s.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
+                return { inicio: pad(s), fin: pad(hoy) };
+            case 'mes':
+                return { inicio: pad(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), fin: pad(hoy) };
+            default:
+                return {
+                    inicio: document.getElementById('fechaInicio').value,
+                    fin:    document.getElementById('fechaFin').value
+                };
+        }
+    }
+
+    function cargarClientes() {
+        if (isLoading) return;
+        isLoading = true;
+
+        const tbody = document.querySelector('#clientesTable tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4">
+                    <div class="spinner-border text-info" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando clientes...</p>
+                </td>
+            </tr>`;
+
+        const params = new URLSearchParams({
+            fecha_inicio: fechaInicio,
+            fecha_fin:    fechaFin,
+            limite:       limiteFilter
+        });
+
+        fetch(`{{ route('reportes.top-clientes') }}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(response => {
+            renderTabla(response.clientes ?? []);
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4">Error al cargar datos</td></tr>`;
+        })
+        .finally(() => { isLoading = false; });
+    }
+
+    function renderTabla(clientes) {
+        const tbody = document.querySelector('#clientesTable tbody');
+
+        if (!clientes || clientes.length === 0) {
+            tbody.innerHTML = `
+                <tr id="no-clientes-row">
+                    <td colspan="10" class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3 d-block"></i>
+                        <h5>No hay datos de clientes en el período seleccionado</h5>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        // Aplicar filtros locales antes de renderizar
+        let filtrados = clientes.filter(c => {
+            const tipoMatch  = !tipoFilter  || (c.tipo ?? '') === tipoFilter;
+            const estadoMatch = estadoFilter === 'todos' || (c.estado ?? '') === estadoFilter;
+            return tipoMatch && estadoMatch && (c.ventas_count ?? 0) > 0;
+        });
+
+        // Ordenar por total comprado
+        filtrados.sort((a, b) => (b.total_comprado ?? 0) - (a.total_comprado ?? 0));
+
+        // Aplicar límite
+        filtrados = filtrados.slice(0, parseInt(limiteFilter));
+
+        tbody.innerHTML = filtrados.map((cliente, index) => {
+            const totalComprado = parseFloat(cliente.total_comprado ?? 0);
+            const comprasCount  = cliente.ventas_count ?? 0;
+            const promedio      = comprasCount > 0 ? totalComprado / comprasCount : 0;
+            const corona        = index < 3 ? '<i class="fas fa-crown text-warning"></i> ' : '';
+            const tipoBadge     = `<span class="badge bg-${(cliente.tipo ?? '') === 'natural' ? 'primary' : 'secondary'}">${cliente.tipo ?? 'N/A'}</span>`;
+
+            return `
+                <tr>
+                    <td>${corona}${index + 1}</td>
+                    <td><strong>${cliente.nombre ?? 'N/A'}</strong></td>
+                    <td>${cliente.nit ?? 'N/A'}</td>
+                    <td>${tipoBadge}</td>
+                    <td>${cliente.telefono ?? 'N/A'}</td>
+                    <td>${cliente.email ?? 'N/A'}</td>
+                    <td><span class="badge bg-info">${comprasCount}</span></td>
+                    <td><strong>Q${totalComprado.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></td>
+                    <td>Q${promedio.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</td>
+                    <td>
+                        <a href="/clientes/${cliente.id}" class="btn btn-sm btn-info" target="_blank">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        if (currentSearch) aplicarBusquedaLocal();
+    }
+
+    function aplicarBusquedaLocal() {
+        document.querySelectorAll('#clientesTable tbody tr').forEach(row => {
+            const texto = row.textContent.toLowerCase();
+            row.style.display = (!currentSearch || texto.includes(currentSearch)) ? '' : 'none';
+        });
+    }
+
+    // ── Eventos ──────────────────────────────────────────
+
     document.querySelectorAll('.filter-periodo-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.filter-periodo-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentPeriodo = this.dataset.periodo;
-            
+
             if (currentPeriodo !== 'personalizado') {
-                actualizarFechasPorPeriodo(currentPeriodo);
-                aplicarFiltros();
+                const fechas = getFechasPorPeriodo(currentPeriodo);
+                fechaInicio = fechas.inicio;
+                fechaFin    = fechas.fin;
+                document.getElementById('fechaInicio').value = fechaInicio;
+                document.getElementById('fechaFin').value    = fechaFin;
+                cargarClientes();
             }
         });
     });
-    
-    function actualizarFechasPorPeriodo(periodo) {
-        const hoy = new Date();
-        let fechaInicioInput = document.getElementById('fechaInicio');
-        let fechaFinInput = document.getElementById('fechaFin');
-        
-        switch(periodo) {
-            case 'hoy':
-                fechaInicioInput.value = hoy.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'semana':
-                const inicioSemana = new Date(hoy);
-                inicioSemana.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1));
-                fechaInicioInput.value = inicioSemana.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-            case 'mes':
-                const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                fechaInicioInput.value = inicioMes.toISOString().split('T')[0];
-                fechaFinInput.value = hoy.toISOString().split('T')[0];
-                break;
-        }
-        
-        fechaInicio = fechaInicioInput.value;
-        fechaFin = fechaFinInput.value;
-    }
-    
+
     document.getElementById('btnAplicarFiltros').addEventListener('click', function() {
-        fechaInicio = document.getElementById('fechaInicio').value;
-        fechaFin = document.getElementById('fechaFin').value;
+        fechaInicio  = document.getElementById('fechaInicio').value;
+        fechaFin     = document.getElementById('fechaFin').value;
         limiteFilter = document.getElementById('limiteFilter').value;
-        tipoFilter = document.getElementById('tipoFilter').value;
+        tipoFilter   = document.getElementById('tipoFilter').value;
         estadoFilter = document.getElementById('estadoFilter').value;
-        aplicarFiltros();
+        cargarClientes();
     });
-    
-    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
-    
+
     let searchTimeout;
     document.getElementById('searchInput').addEventListener('keyup', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             currentSearch = this.value.toLowerCase().trim();
-            aplicarFiltros();
+            aplicarBusquedaLocal();
         }, 300);
     });
-    
+
     document.getElementById('clearSearch').addEventListener('click', function() {
         document.getElementById('searchInput').value = '';
         currentSearch = '';
-        aplicarFiltros();
-        document.getElementById('searchInput').focus();
+        aplicarBusquedaLocal();
     });
-    
-    function aplicarFiltros() {
-        const tbody = document.querySelector('#clientesTable tbody');
-        let rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        rows = rows.filter(row => !row.id || row.id !== 'no-clientes-row');
-        
-        let visibleRows = [];
-        
-        rows.forEach(row => {
-            const tipo = row.dataset.tipo;
-            const estado = row.dataset.estado;
-            const compras = parseInt(row.dataset.compras) || 0;
-            const total = parseFloat(row.dataset.total) || 0;
-            const searchData = row.dataset.search || '';
-            
-            // Filtro de tipo
-            const tipoMatch = !tipoFilter || tipo === tipoFilter;
-            
-            // Filtro de estado
-            const estadoMatch = estadoFilter === 'todos' || !estadoFilter || estado === estadoFilter;
-            
-            // Filtro de compras (solo mostrar clientes con compras)
-            const comprasMatch = compras > 0;
-            
-            // Filtro de búsqueda
-            const searchMatch = !currentSearch || searchData.includes(currentSearch);
-            
-            if (tipoMatch && estadoMatch && comprasMatch && searchMatch) {
-                visibleRows.push(row);
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Ordenar por total comprado (mayor a menor)
-        visibleRows.sort((a, b) => {
-            const totalA = parseFloat(a.dataset.total) || 0;
-            const totalB = parseFloat(b.dataset.total) || 0;
-            return totalB - totalA;
-        });
-        
-        // Aplicar límite
-        if (limiteFilter > 0) {
-            visibleRows = visibleRows.slice(0, parseInt(limiteFilter));
-        }
-        
-        // Reordenar tabla
-        const allRows = rows.filter(row => visibleRows.includes(row));
-        const hiddenRows = rows.filter(row => !visibleRows.includes(row));
-        
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-        
-        visibleRows.forEach((row, index) => {
-            row.style.display = '';
-            const firstCell = row.querySelector('td:first-child');
-            if (firstCell) {
-                if (index < 3) {
-                    firstCell.innerHTML = `<i class="fas fa-crown text-warning"></i> ${index + 1}`;
-                } else {
-                    firstCell.textContent = index + 1;
-                }
-            }
-            tbody.appendChild(row);
-        });
-        
-        hiddenRows.forEach(row => tbody.appendChild(row));
-        
-        mostrarMensajeNoResultados(visibleRows.length, rows.length);
-    }
-    
-    function mostrarMensajeNoResultados(visibleCount, totalRows) {
-        const tbody = document.querySelector('#clientesTable tbody');
-        let noResultsRow = document.getElementById('no-results-row');
-        
-        if (visibleCount === 0 && totalRows > 0) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'no-results-row';
-                noResultsRow.innerHTML = `
-                    <td colspan="10" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No se encontraron clientes</h5>
-                        <p class="text-muted mb-3">Intenta con otros filtros</p>
-                        <button class="btn btn-sm btn-primary" onclick="limpiarFiltros()">
-                            <i class="fas fa-undo me-2"></i>Limpiar filtros
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(noResultsRow);
-            }
-        } else {
-            if (noResultsRow) {
-                noResultsRow.remove();
-            }
-        }
-    }
-    
-    
-});
 
-window.limpiarFiltros = function() {
-        document.querySelector('.filter-periodo-btn[data-periodo="hoy"]').click();
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
+
+    window.limpiarFiltros = function() {
         document.getElementById('limiteFilter').value = '10';
-        document.getElementById('tipoFilter').value = '';
+        document.getElementById('tipoFilter').value   = '';
         document.getElementById('estadoFilter').value = 'todos';
-        document.getElementById('searchInput').value = '';
-        currentSearch = '';
-        
-        tipoFilter = '';
-        estadoFilter = 'todos';
-        
-        aplicarFiltros();
+        document.getElementById('searchInput').value  = '';
+        limiteFilter = '10'; tipoFilter = ''; estadoFilter = 'todos'; currentSearch = '';
+        document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
     };
+
+    // Carga inicial
+    document.querySelector('.filter-periodo-btn[data-periodo="mes"]').click();
+});
 
 function exportarReporte() {
     alert('Funcionalidad de exportación próximamente');
