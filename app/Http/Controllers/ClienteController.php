@@ -92,7 +92,7 @@ class ClienteController extends Controller
             'per_page' => 20,
         ];
 
-        $response = $this->apiService->get('clientes/filter', $params);
+        $response = $this->apiService->get('clientes', $params);
 
         if ($response->successful()) {
             $data = $response->json();
