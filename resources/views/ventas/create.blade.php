@@ -568,29 +568,60 @@ function limpiarCamposItem() {
     document.getElementById('item_stock_info').textContent = '';
 }
 
+// Función helper para obtener datos del producto seleccionado
+// funciona tanto con opciones del HTML inicial como con resultados AJAX
+function getDatosProductoSeleccionado() {
+    const select2Data = $('#item_producto_id').select2('data');
+    
+    if (select2Data && select2Data[0] && select2Data[0].id) {
+        const s2 = select2Data[0];
+        // Si tiene datos de Select2 AJAX úsalos, si no lee del dataset
+        return {
+            id:     s2.id,
+            nombre: s2.nombre || s2.text || '',
+            precio: s2.precio ?? s2.element?.dataset?.precio ?? 0,
+            stock:  s2.stock  ?? s2.element?.dataset?.stock  ?? 0,
+        };
+    }
+    return null;
+}
+
+function getDatosServicioSeleccionado() {
+    const select2Data = $('#item_servicio_id').select2('data');
+    
+    if (select2Data && select2Data[0] && select2Data[0].id) {
+        const s2 = select2Data[0];
+        return {
+            id:     s2.id,
+            nombre: s2.nombre || s2.text || '',
+            precio: s2.precio ?? s2.element?.dataset?.precio ?? 0,
+        };
+    }
+    return null;
+}
+
 // Actualizar datos del item seleccionado
 function actualizarDatosItem() {
     const tipo = document.getElementById('item_tipo').value;
-    
+
     if (tipo === 'producto') {
-        const select = document.getElementById('item_producto_id');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (selectedOption && selectedOption.value) {
-            const precio = parseFloat(selectedOption.dataset.precio) || 0;
-            const stock = parseInt(selectedOption.dataset.stock) || 0;
-            
+        const datos = getDatosProductoSeleccionado();
+
+        if (datos) {
+            const precio = parseFloat(datos.precio) || 0;
+            const stock  = parseInt(datos.stock)    || 0;
+
             document.getElementById('item_precio').value = precio.toFixed(2);
-            
+
             const stockInfo = document.getElementById('item_stock_info');
             if (stock <= 0) {
                 stockInfo.innerHTML = '<span class="stock-bajo">⚠️ ¡Sin stock disponible!</span>';
-                document.getElementById('item_cantidad').max = 0;
+                document.getElementById('item_cantidad').max   = 0;
                 document.getElementById('item_cantidad').value = 0;
             } else {
                 stockInfo.innerHTML = `<span class="text-success">✓ Stock disponible: ${stock} unidades</span>`;
+                document.getElementById('item_cantidad').removeAttribute('max');
                 document.getElementById('item_cantidad').max = stock;
-                
                 const cantidad = parseInt(document.getElementById('item_cantidad').value) || 1;
                 if (cantidad > stock) {
                     document.getElementById('item_cantidad').value = stock;
@@ -600,41 +631,47 @@ function actualizarDatosItem() {
             document.getElementById('item_precio').value = '0';
             document.getElementById('item_stock_info').textContent = '';
         }
+
     } else if (tipo === 'servicio') {
-        const select = document.getElementById('item_servicio_id');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (selectedOption && selectedOption.value) {
-            const precio = parseFloat(selectedOption.dataset.precio) || 0;
-            
-            document.getElementById('item_precio').value = precio.toFixed(2);
+        const datos = getDatosServicioSeleccionado();
+
+        if (datos) {
+            const precio = parseFloat(datos.precio) || 0;
+            document.getElementById('item_precio').value   = precio.toFixed(2);
             document.getElementById('item_stock_info').innerHTML = '<span class="text-info">✓ Servicio disponible</span>';
         } else {
             document.getElementById('item_precio').value = '0';
             document.getElementById('item_stock_info').textContent = '';
         }
     }
-    
+
     validarStockItem();
 }
 
 // Validar stock del item
 function validarStockItem() {
     const tipo = document.getElementById('item_tipo').value;
-    
+
     if (tipo === 'producto') {
-        const select = document.getElementById('item_producto_id');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (selectedOption && selectedOption.value) {
-            const stock = parseInt(selectedOption.dataset.stock) || 0;
+        const datos = getDatosProductoSeleccionado();
+
+        if (datos) {
+            const stock    = parseInt(datos.stock) || 0;
             const cantidad = parseInt(document.getElementById('item_cantidad').value) || 0;
-            
-            if (cantidad > stock) {
-                document.getElementById('item_stock_info').innerHTML = '<span class="stock-bajo">❌ La cantidad excede el stock disponible</span>';
+
+            if (stock <= 0) {
+                document.getElementById('item_stock_info').innerHTML =
+                    '<span class="stock-bajo">⚠️ ¡Sin stock disponible!</span>';
                 return false;
-            } else if (cantidad > 0) {
-                document.getElementById('item_stock_info').innerHTML = `<span class="text-success">✓ Cantidad válida (Stock: ${stock})</span>`;
+            }
+            if (cantidad > stock) {
+                document.getElementById('item_stock_info').innerHTML =
+                    '<span class="stock-bajo">❌ La cantidad excede el stock disponible</span>';
+                return false;
+            }
+            if (cantidad > 0) {
+                document.getElementById('item_stock_info').innerHTML =
+                    `<span class="text-success">✓ Cantidad válida (Stock: ${stock})</span>`;
                 return true;
             }
         }
@@ -648,34 +685,27 @@ function agregarItem() {
     let descripcion = '';
     let producto_id = null;
     let servicio_id = null;
-    let referencia = null;
-    
-    // Validar según tipo
+    let referencia  = null;
+
     if (tipo === 'producto') {
-        const select = document.getElementById('item_producto_id');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (!selectedOption || !selectedOption.value) {
+        const datos = getDatosProductoSeleccionado();
+        if (!datos) {
             mostrarAlerta('Debe seleccionar un producto', 'warning');
             return;
         }
-        
-        producto_id = selectedOption.value;
-        descripcion = selectedOption.dataset.nombre || '';
-    } 
-    else if (tipo === 'servicio') {
-        const select = document.getElementById('item_servicio_id');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (!selectedOption || !selectedOption.value) {
+        producto_id = datos.id;
+        descripcion = datos.nombre;
+
+    } else if (tipo === 'servicio') {
+        const datos = getDatosServicioSeleccionado();
+        if (!datos) {
             mostrarAlerta('Debe seleccionar un servicio', 'warning');
             return;
         }
-        
-        servicio_id = selectedOption.value;
-        descripcion = selectedOption.dataset.nombre || '';
-    } 
-    else {
+        servicio_id = datos.id;
+        descripcion = datos.nombre;
+
+    } else {
         descripcion = document.getElementById('item_descripcion').value.trim();
         if (!descripcion) {
             mostrarAlerta('Debe ingresar una descripción', 'warning');
@@ -683,77 +713,55 @@ function agregarItem() {
         }
         referencia = 'EXT-' + Date.now().toString().slice(-6);
     }
-    
-    const cantidad = parseInt(document.getElementById('item_cantidad').value);
+
+    const cantidad       = parseInt(document.getElementById('item_cantidad').value);
     const precioUnitario = parseFloat(document.getElementById('item_precio').value);
-    const descuento = parseFloat(document.getElementById('item_descuento').value) || 0;
-    
-    // Validaciones
+    const descuento      = parseFloat(document.getElementById('item_descuento').value) || 0;
+
     if (!cantidad || cantidad < 1) {
         mostrarAlerta('La cantidad debe ser mayor a 0', 'warning');
         return;
     }
-    
     if (!precioUnitario || precioUnitario <= 0) {
         mostrarAlerta('El precio debe ser mayor a 0', 'warning');
         return;
     }
-    
     if (descuento < 0) {
         mostrarAlerta('El descuento no puede ser negativo', 'warning');
         return;
     }
-    
     if (descuento > (cantidad * precioUnitario)) {
         mostrarAlerta('El descuento no puede ser mayor al subtotal', 'warning');
         return;
     }
-    
-    // Validar stock
     if (!validarStockItem()) {
         mostrarAlerta('La cantidad excede el stock disponible', 'error');
         return;
     }
-    
-    // Calcular subtotales
+
     const subtotal = cantidad * precioUnitario;
-    const total = subtotal - descuento;
-    
-    // Crear item
-    const item = {
+    const total    = subtotal - descuento;
+
+    items.push({
         id: Date.now() + Math.random(),
-        tipo: tipo,
-        cantidad: cantidad,
-        descripcion: descripcion,
+        tipo, cantidad, descripcion,
         precio_unitario: precioUnitario,
-        descuento: descuento,
-        subtotal: subtotal,
-        total: total,
-        producto_id: producto_id,
-        servicio_id: servicio_id,
-        referencia: referencia
-    };
-    
-    // Agregar a la lista
-    items.push(item);
-    
-    // Actualizar tabla
+        descuento, subtotal, total,
+        producto_id, servicio_id, referencia
+    });
+
     actualizarTablaItems();
-    
-    // Limpiar campos
     limpiarCamposItem();
     reiniciarSelect2('#item_producto_id');
     reiniciarSelect2('#item_servicio_id');
     document.getElementById('item_descripcion').value = '';
-    
-    // Actualizar información de crédito si está marcado
+
     if (document.getElementById('es_credito').checked) {
-        const totalGeneral = items.reduce((sum, item) => sum + item.total, 0);
-        const creditoInfo = document.getElementById('credito-info');
-        creditoInfo.innerHTML = `<i class="fas fa-info-circle me-1"></i> Crédito por Q${totalGeneral.toFixed(2)} pendiente.`;
+        const totalGeneral = items.reduce((sum, i) => sum + i.total, 0);
+        document.getElementById('credito-info').innerHTML =
+            `<i class="fas fa-info-circle me-1"></i> Crédito por Q${totalGeneral.toFixed(2)} pendiente.`;
     }
-    
-    // Mostrar mensaje
+
     mostrarAlerta('Item agregado correctamente', 'success');
 }
 
