@@ -292,11 +292,22 @@
 <script>
 // =================== VARIABLES GLOBALES ===================
 let items = [];
+console.log('A - Script iniciando');
+console.log('B - jQuery:', typeof $);
+console.log('C - Select2:', typeof $.fn.select2);
 
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('D - DOM listo');
+});
+
+window.addEventListener('load', function() {
+    console.log('E - Window load');
+    console.log('F - Select2 en window.load:', typeof $.fn.select2);
+    console.log('G - Elemento:', $('#item_producto_id').length);
+});
 // =================== INICIALIZACIÓN ===================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado, inicializando Select2...');
-    
     // Inicializar Select2 para clientes
     $('#cliente_id').select2({
         language: "es",
@@ -449,6 +460,8 @@ function initProductoSelect2() {
                 return `${item.nombre} - Q${precio.toFixed(2)}`;
             }
         });
+
+        
     }
 }
 
@@ -887,17 +900,22 @@ function guardarClienteRapido() {
     })
     .then(response => response.json())
     .then(data => {
+        
         if (data.success) {
-            const select = document.getElementById('cliente_id');
-            const optionText = `${nombre}${nit ? ' | NIT: ' + nit : ''}${telefono ? ' | Tel: ' + telefono : ''}`;
-            const option = new Option(optionText, data.cliente.id, true, true);
-            
-            select.appendChild(option);
-            select.value = data.cliente.id;
-            $(select).trigger('change');
+            const clienteId   = data.cliente.id;
+            const optionText  = `${nombre}${nit ? ' | NIT: ' + nit : ''}${telefono ? ' | Tel: ' + telefono : ''}`;
+
+            // Crear opción y agregarla via Select2
+            const newOption = new Option(optionText, clienteId, true, true);
+            $(newOption).data('nombre',   nombre);
+            $(newOption).data('nit',      nit);
+            $(newOption).data('telefono', telefono);
+
+            $('#cliente_id').append(newOption).trigger('change');
             
             bootstrap.Modal.getInstance(document.getElementById('modalCliente')).hide();
             mostrarAlerta('Cliente creado exitosamente', 'success');
+            console.log('DATA COMPLETA:', JSON.stringify(data));
         } else {
             mostrarAlerta(data.message || 'Error al crear cliente', 'error');
         }

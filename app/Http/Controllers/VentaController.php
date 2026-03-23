@@ -44,7 +44,7 @@ class VentaController extends Controller
                 
                 $ventas = $data['ventas'] ?? [];
                 $estadisticas = $data['estadisticas'] ?? [];
-                
+
                 // Transformar los links de paginación
                 if (isset($ventas['links'])) {
                     $ventas['links'] = $this->transformPaginationLinks($ventas['links'], $request->path());
@@ -105,29 +105,6 @@ class VentaController extends Controller
     }
 
     /**
-     * Transformar los links de paginación
-     */
-    private function transformPaginationLinks($links, $path)
-    {
-        foreach ($links as &$link) {
-            if (isset($link['url']) && $link['url']) {
-                // Extraer el número de página de la URL original
-                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
-                $page = $matches[1] ?? null;
-                
-                if ($page) {
-                    // Reemplazar con la ruta del frontend
-                    $link['url'] = url($path) . '?page=' . $page;
-                } else {
-                    $link['url'] = null;
-                }
-            }
-        }
-        
-        return $links;
-    }
-
-    /**
      * Filtrar ventas via AJAX
      */
     public function filter(Request $request)
@@ -153,6 +130,7 @@ class VentaController extends Controller
 
         if ($response->successful()) {
             $data = $response->json();
+
             return response()->json([
                 'success' => true,
                 'ventas'  => $data['ventas'] ?? [],
@@ -164,6 +142,29 @@ class VentaController extends Controller
             'ventas'  => ['data' => [], 'links' => [], 'total' => 0],
             'message' => 'Error al filtrar'
         ], 500);
+    }
+
+    /**
+     * Transformar los links de paginación
+     */
+    private function transformPaginationLinks($links, $path)
+    {
+        foreach ($links as &$link) {
+            if (isset($link['url']) && $link['url']) {
+                // Extraer el número de página de la URL original
+                preg_match('/[?&]page=(\d+)/', $link['url'], $matches);
+                $page = $matches[1] ?? null;
+                
+                if ($page) {
+                    // Reemplazar con la ruta del frontend
+                    $link['url'] = url($path) . '?page=' . $page;
+                } else {
+                    $link['url'] = null;
+                }
+            }
+        }
+        
+        return $links;
     }
 
     /**

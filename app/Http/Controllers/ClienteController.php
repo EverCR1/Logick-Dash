@@ -351,13 +351,16 @@ class ClienteController extends Controller
         if ($response->successful()) {
             $clienteData = $response->json();
             
+            // La API devuelve { success: true, cliente: { id: X, ... } }
+            $cliente = $clienteData['cliente'] ?? $clienteData;
+            
             return response()->json([
-                'success' => true,
-                'cliente' => [
-                    'id' => $clienteData['id'] ?? $clienteData['data']['id'] ?? null,
-                    'nombre' => $clienteData['nombre'] ?? $clienteData['data']['nombre'] ?? $request->nombre,
-                    'nit' => $clienteData['nit'] ?? $clienteData['data']['nit'] ?? $request->nit,
-                    'telefono' => $clienteData['telefono'] ?? $clienteData['data']['telefono'] ?? $request->telefono,
+                'success'  => true,
+                'cliente'  => [
+                    'id'       => $cliente['id']       ?? null,
+                    'nombre'   => $cliente['nombre']   ?? $request->nombre,
+                    'nit'      => $cliente['nit']      ?? $request->nit,
+                    'telefono' => $cliente['telefono'] ?? $request->telefono,
                 ],
                 'message' => 'Cliente creado exitosamente'
             ], 201);

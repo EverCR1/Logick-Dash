@@ -141,6 +141,7 @@
                                 <th>SKU</th>
                                 <th>Producto</th>
                                 <th>Proveedor</th>
+                                <th>Ubicación</th>
                                 <th>Precios</th>
                                 <th>Stock</th>
                                 <th>Estado</th>
@@ -193,6 +194,7 @@
                                     @endforeach
                                 </td>
                                 <td>{{ $producto['proveedor']['nombre'] ?? 'N/A' }}</td>
+                                <td>{{ $producto['ubicacion'] ?? 'N/A' }}</td>
                                 <td>
                                     <small>Compra: <strong>Q{{ number_format($producto['precio_compra'] ?? 0, 2) }}</strong></small><br>
                                     <small>Venta:

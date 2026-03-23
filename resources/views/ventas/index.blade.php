@@ -242,22 +242,22 @@
                                         {{ $numItems }} {{ $numItems === 1 ? 'item' : 'items' }}
                                     </span>
                                     @if($numItems > 0)
+                                        @php
+                                            $popHtml = '<ul class="list-unstyled mb-0">';
+                                            foreach (array_slice($venta['detalles'] ?? [], 0, 3) as $d) {
+                                                $popHtml .= '<li><small>• ' . ($d['cantidad'] ?? 1) . 'x ' . Str::limit($d['descripcion'] ?? '', 25) . '</small></li>';
+                                            }
+                                            if ($numItems > 3) {
+                                                $popHtml .= '<li><small class="text-muted">... y ' . ($numItems - 3) . ' más</small></li>';
+                                            }
+                                            $popHtml .= '</ul>';
+                                        @endphp
                                         <button type="button" class="btn btn-sm btn-link p-0 ms-1"
-                                                data-bs-toggle="popover" data-bs-html="true"
-                                                data-bs-trigger="hover" title="Items"
-                                                @php
-                                                    $popHtml = '<ul class=\'list-unstyled mb-0\'>';
-                                                    foreach (array_slice($venta['detalles'] ?? [], 0, 3) as $d) {
-                                                        $popHtml .= '<li><small>• ' . ($d['cantidad'] ?? 1) . 'x ' . Str::limit($d['descripcion'] ?? '', 25) . '</small></li>';
-                                                    }
-                                                    if ($numItems > 3) {
-                                                        $popHtml .= '<li><small class=\'text-muted\'>... y ' . ($numItems - 3) . ' más</small></li>';
-                                                    }
-                                                    $popHtml .= '</ul>';
-                                                @endphp
-
-                                                {{-- luego en el botón: --}}
-                                                data-bs-content="{{ htmlspecialchars($popHtml, ENT_QUOTES) }}"
+                                                data-bs-toggle="popover"
+                                                data-bs-html="true"
+                                                data-bs-trigger="hover"
+                                                title="Items"
+                                                data-bs-content="{{ $popHtml }}">
                                             <i class="fas fa-info-circle text-muted"></i>
                                         </button>
                                     @endif
@@ -417,19 +417,24 @@ document.addEventListener('DOMContentLoaded', function () {
     // Formatea una fecha ISO con timezone de Guatemala
     function formatearFecha(isoStr) {
         if (!isoStr) return { fecha: 'N/A', hora: '' };
-        const partes = isoStr.replace('T', ' ').split(' ');
-        const [y, m, d] = partes[0].split('-');
-        const hora = partes[1] ? partes[1].substring(0, 5) : '00:00';
-        return { fecha: `${d}/${m}/${y}`, hora };
+
+        const fecha = new Date(isoStr);
+        const opts  = { timeZone: 'America/Guatemala' };
+
+        const dia  = fecha.toLocaleString('es-GT', { ...opts, day:   '2-digit' });
+        const mes  = fecha.toLocaleString('es-GT', { ...opts, month: '2-digit' });
+        const anio = fecha.toLocaleString('es-GT', { ...opts, year:  'numeric' });
+        const hora = fecha.toLocaleString('es-GT', { ...opts, hour: '2-digit', minute: '2-digit', hour12: false });
+
+        return { fecha: `${dia}/${mes}/${anio}`, hora };
     }
 
-    // Convierte hora 24h a formato 12h con AM/PM
     function hora12(hora24) {
         if (!hora24) return '';
         const [h, m] = hora24.split(':');
-        const hNum = parseInt(h);
-        const ampm = hNum >= 12 ? 'PM' : 'AM';
-        const h12  = hNum % 12 || 12;
+        const hNum   = parseInt(h);
+        const ampm   = hNum >= 12 ? 'PM' : 'AM';
+        const h12    = hNum % 12 || 12;
         return `${h12}:${m} ${ampm}`;
     }
 
@@ -461,6 +466,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const metodoIcon   = { efectivo: 'money-bill', tarjeta: 'credit-card', transferencia: 'exchange-alt', mixto: 'coins' };
 
         tbody.innerHTML = '';
+
+        if (registros.length > 0) {
+    console.log('Primera venta keys:', Object.keys(registros[0]));
+    console.log('Detalles:', registros[0].detalles);
+    console.log('Detalles raw:', JSON.stringify(registros[0].detalles));
+}
 
         registros.forEach(v => {
             const { fecha, hora } = formatearFecha(v.created_at);
