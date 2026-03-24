@@ -135,7 +135,7 @@
                 <div class="table-responsive" id="table-wrapper"
                      style="{{ empty($productosData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="productosTable">
-                        <thead class="bg-primary text-white">
+                        <thead class="table-head-dark">
                             <tr>
                                 <th style="width:70px;">Imagen</th>
                                 <th>SKU</th>
@@ -654,118 +654,39 @@ function abrirModalImagen(src, titulo) {
 @push('styles')
 <style>
 .product-list-image {
-    transition: all 0.2s ease-in-out;
-    border: 1px solid #dee2e6;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s;
+    object-fit: cover;
 }
-
 .product-list-image:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(34,197,94,0.2);
+    border-color: #22c55e;
     cursor: pointer;
 }
-
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0,0,0,0.02);
-}
-
-.table-hover tbody tr:hover .product-list-image {
-    border-color: #0d6efd;
-}
-
-.badge {
-    font-size: 0.85em;
-}
-
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-/* Estilos para botones de filtro activos */
-.filter-btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-}
-
-.filter-btn[data-filter="activo"].active {
-    background-color: #198754;
-    border-color: #198754;
-}
-
-.filter-btn[data-filter="inactivo"].active {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-.filter-stock-btn.active {
-    background-color: #0dcaf0;
-    color: #000;
-    border-color: #0dcaf0;
-}
-
-.filter-stock-btn[data-stock="bajo"].active {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
-}
-
-.filter-stock-btn[data-stock="disponible"].active {
-    background-color: #198754;
-    border-color: #198754;
-    color: white;
-}
-
-.filter-stock-btn[data-stock="agotado"].active {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: white;
-}
-
-/* Dropdowns de filtros */
-.dropdown-menu {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.form-check {
-    padding-left: 1.5rem;
-}
-
-
-
-/* Estilos responsivos */
+.table-hover tbody tr:hover { background: #f0fdf4; }
+.table-hover tbody tr:hover .product-list-image { border-color: #22c55e; }
+ 
+/* Filtros estado */
+.filter-btn.active                         { background: #22c55e; color: white; border-color: #22c55e; }
+.filter-btn[data-filter="inactivo"].active { background: #ef4444; border-color: #ef4444; }
+ 
+/* Filtros stock */
+.filter-stock-btn.active                           { background: #0284c7; color: white; border-color: #0284c7; }
+.filter-stock-btn[data-stock="bajo"].active        { background: #ef4444; border-color: #ef4444; color: white; }
+.filter-stock-btn[data-stock="disponible"].active  { background: #22c55e; border-color: #22c55e; color: white; }
+.filter-stock-btn[data-stock="agotado"].active     { background: #64748b; border-color: #64748b; color: white; }
+ 
+/* Dropdowns */
+.dropdown-menu { max-height: 300px; overflow-y: auto; }
+.form-check    { padding-left: 1.5rem; }
+ 
 @media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.9rem;
-    }
-    
-    .product-list-image {
-        width: 50px !important;
-        height: 50px !important;
-    }
-    
-    .btn-group .btn {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.8rem;
-    }
-    
-    .d-flex.flex-wrap {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .dropdown {
-        width: 100%;
-    }
-    
-    .dropdown .btn {
-        width: 100%;
-        text-align: left;
-    }
-
+    .product-list-image { width: 50px !important; height: 50px !important; }
+    .d-flex.flex-wrap   { flex-direction: column; gap: 0.5rem; }
+    .dropdown           { width: 100%; }
+    .dropdown .btn      { width: 100%; text-align: left; }
 }
-
 </style>
 @endpush

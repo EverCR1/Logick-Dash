@@ -197,7 +197,7 @@
                 <div class="table-responsive" id="table-wrapper"
                      style="{{ empty($ventasData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="ventasTable">
-                        <thead class="bg-primary text-white">
+                        <thead class="table-head-dark">
                             <tr>
                                 <th>Fecha</th>
                                 <th>N° Venta</th>
@@ -707,149 +707,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @push('styles')
 <style>
-.table-hover tbody tr:hover {
-    background-color: rgba(0,0,0,0.02);
-}
-
-.badge {
-    font-size: 0.85em;
-    padding: 0.4em 0.8em;
-}
-
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-.bg-primary.rounded-circle,
-.bg-success.rounded-circle,
-.bg-warning.rounded-circle,
-.bg-info.rounded-circle {
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Estilos para botones de filtro activos */
-.filter-btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-}
-
-.filter-btn[data-filter="completada"].active {
-    background-color: #198754;
-    border-color: #198754;
-}
-
-.filter-btn[data-filter="pendiente"].active {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #000;
-}
-
-.filter-btn[data-filter="cancelada"].active {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-.filter-pago-btn.active {
-    background-color: #0dcaf0;
-    color: #000;
-    border-color: #0dcaf0;
-}
-
-.filter-pago-btn[data-pago="efectivo"].active {
-    background-color: #198754;
-    border-color: #198754;
-    color: white;
-}
-
-.filter-pago-btn[data-pago="tarjeta"].active {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-}
-
-.filter-pago-btn[data-pago="transferencia"].active {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: white;
-}
-
-.filter-pago-btn[data-pago="mixto"].active {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #000;
-}
-
-/* Dropdowns de filtros */
-.dropdown-menu {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-/* Tooltip personalizado */
-.popover {
-    max-width: 300px;
-}
-
-.popover ul {
-    margin-bottom: 0;
-    padding-left: 0;
-}
-
-.popover li {
-    padding: 2px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.popover li:last-child {
-    border-bottom: none;
-}
-
-/* Estilos responsivos */
+.table-hover tbody tr:hover { background: #f0fdf4; }
+ 
+/* Estado */
+.filter-btn.active                            { background: #22c55e; color: white; border-color: #22c55e; }
+.filter-btn[data-filter="completada"].active  { background: #22c55e; border-color: #22c55e; }
+.filter-btn[data-filter="pendiente"].active   { background: #f59e0b; border-color: #f59e0b; color: white; }
+.filter-btn[data-filter="cancelada"].active   { background: #ef4444; border-color: #ef4444; }
+ 
+/* Pago */
+.filter-pago-btn.active                               { background: #0284c7; color: white; border-color: #0284c7; }
+.filter-pago-btn[data-pago="efectivo"].active         { background: #22c55e; border-color: #22c55e; color: white; }
+.filter-pago-btn[data-pago="tarjeta"].active          { background: #3b82f6; border-color: #3b82f6; color: white; }
+.filter-pago-btn[data-pago="transferencia"].active    { background: #64748b; border-color: #64748b; color: white; }
+.filter-pago-btn[data-pago="mixto"].active            { background: #f59e0b; border-color: #f59e0b; color: white; }
+ 
+/* Stats cards en ventas */
+.col-md-3 .card.border-0:hover { transform: none; }
+ 
+/* Popovers */
+.popover { max-width: 280px; font-size: 0.83rem; }
+.popover li { padding: 2px 0; border-bottom: 1px solid #f1f5f9; }
+.popover li:last-child { border-bottom: none; }
+ 
+.dropdown-menu { max-height: 320px; overflow-y: auto; }
+ 
 @media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.9rem;
-    }
-    
-    .btn-group .btn {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.8rem;
-    }
-    
-    .card-header {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 10px;
-    }
-    
-    .card-header .d-flex {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .badge {
-        font-size: 0.75em;
-        padding: 0.3em 0.5em;
-    }
-    
-    .d-flex.flex-wrap {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .dropdown {
-        width: 100%;
-    }
-    
-    .dropdown .btn {
-        width: 100%;
-        text-align: left;
-    }
+    .d-flex.flex-wrap { flex-direction: column; gap: 0.5rem; }
+    .dropdown         { width: 100%; }
+    .dropdown .btn    { width: 100%; text-align: left; }
 }
 </style>
 @endpush
+ 

@@ -12,73 +12,48 @@
 
     <!-- Estadísticas -->
     @if(!empty($estadisticas))
-    <div class="row mb-4" id="estadisticas-wrap">
-        <div class="col-md-3">
-            <div class="card border-primary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted mb-1">Total Créditos</h6>
-                            <h4 class="mb-0" id="stat-total">{{ $estadisticas['total_creditos'] ?? 0 }}</h4>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-file-invoice-dollar fa-2x text-primary"></i>
-                        </div>
-                    </div>
-                </div>
+    <div class="creditos-stats mb-4">
+    
+        <a href="#" class="cstat-card cstat-total">
+            <div class="cstat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="cstat-body">
+                <span class="cstat-label">Total Créditos</span>
+                <span class="cstat-value" id="stat-total">{{ $estadisticas['total_creditos'] ?? 0 }}</span>
+            </div>
+        </a>
+    
+        <a href="#" class="cstat-card cstat-activo" onclick="filtrarPor('activo'); return false;">
+            <div class="cstat-icon"><i class="fas fa-clock"></i></div>
+            <div class="cstat-body">
+                <span class="cstat-label">Activos</span>
+                <span class="cstat-value" id="stat-activos">{{ $estadisticas['activos'] ?? 0 }}</span>
+                <span class="cstat-sub" id="stat-capital-activos">
+                    Q{{ number_format($estadisticas['capital_pendiente_activos'] ?? 0, 2) }} pendiente
+                </span>
+            </div>
+        </a>
+    
+        <a href="#" class="cstat-card cstat-abonado" onclick="filtrarPor('abonado'); return false;">
+            <div class="cstat-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="cstat-body">
+                <span class="cstat-label">Abonados</span>
+                <span class="cstat-value" id="stat-abonados">{{ $estadisticas['abonados'] ?? 0 }}</span>
+                <span class="cstat-sub" id="stat-capital-abonados">
+                    Q{{ number_format($estadisticas['capital_pendiente_abonados'] ?? 0, 2) }} pendiente
+                </span>
+            </div>
+        </a>
+    
+        <div class="cstat-card cstat-recuperado">
+            <div class="cstat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="cstat-body">
+                <span class="cstat-label">Total Recuperado</span>
+                <span class="cstat-value" id="stat-recuperado" style="color:#22c55e;">
+                    Q{{ number_format($estadisticas['total_recuperado'] ?? 0, 2) }}
+                </span>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-success">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted mb-1">Activos</h6>
-                            <h4 class="mb-0" id="stat-activos">{{ $estadisticas['activos'] ?? 0 }}</h4>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-clock fa-2x text-success"></i>
-                        </div>
-                    </div>
-                    <small class="text-muted" id="stat-capital-activos">
-                        Q{{ number_format($estadisticas['capital_pendiente_activos'] ?? 0, 2) }} pendiente
-                    </small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-warning">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted mb-1">Abonados</h6>
-                            <h4 class="mb-0" id="stat-abonados">{{ $estadisticas['abonados'] ?? 0 }}</h4>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-money-bill-wave fa-2x text-warning"></i>
-                        </div>
-                    </div>
-                    <small class="text-muted" id="stat-capital-abonados">
-                        Q{{ number_format($estadisticas['capital_pendiente_abonados'] ?? 0, 2) }} pendiente
-                    </small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted mb-1">Recuperado</h6>
-                            <h4 class="mb-0" id="stat-recuperado">Q{{ number_format($estadisticas['total_recuperado'] ?? 0, 2) }}</h4>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-chart-line fa-2x text-info"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    
     </div>
     @endif
 
@@ -155,7 +130,7 @@
 
                 <div class="table-responsive" id="table-wrapper" style="{{ empty($creditosData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="creditosTable">
-                        <thead class="bg-primary text-white">
+                        <thead class="table-head-dark">
                             <tr>
                                 <th>Cliente</th>
                                 <th>Producto/Servicio</th>
@@ -623,88 +598,86 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Enlazar botones en carga inicial ──────────────────────────────
     enlazarBotonesPago();
 });
+window.filtrarPor = function(estado) {
+    currentEstado = estado;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === estado);
+    });
+    fetchFiltrado();
+};
 </script>
 @endpush
 
 @push('styles')
 <style>
-.progress {
-    min-width: 100px;
+.creditos-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
 }
-
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+@media (max-width: 1200px) { .creditos-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .creditos-stats { grid-template-columns: 1fr; } }
+ 
+.cstat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: var(--transition);
+    border-left: 3px solid transparent;
+    box-shadow: var(--shadow-sm);
 }
-
-/* Estilos para botones de filtro activos */
-.filter-btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
+.cstat-card:hover {
+    box-shadow: var(--shadow-md);
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: inherit;
+    transform: translateY(-1px);
 }
-
-.filter-btn[data-filter="activo"].active {
-    background-color: #dc3545;
-    border-color: #dc3545;
+ 
+.cstat-total    { border-left-color: #64748b; }
+.cstat-activo   { border-left-color: #ef4444; }
+.cstat-abonado  { border-left-color: #f59e0b; }
+.cstat-recuperado { border-left-color: #22c55e; }
+ 
+.cstat-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
 }
+.cstat-total   .cstat-icon { background: #f1f5f9;              color: #64748b; }
+.cstat-activo  .cstat-icon { background: rgba(239,68,68,0.1);  color: #ef4444; }
+.cstat-abonado .cstat-icon { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.cstat-recuperado .cstat-icon { background: rgba(34,197,94,0.1); color: #22c55e; }
+ 
+.cstat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cstat-label { font-size: 0.72rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+.cstat-value { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); font-family: 'DM Mono', monospace; letter-spacing: -0.02em; line-height: 1.2; }
+.cstat-sub   { font-size: 0.75rem; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.filter-btn[data-filter="abonado"].active {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #000;
-}
-
-.filter-btn[data-filter="pagado"].active {
-    background-color: #198754;
-    border-color: #198754;
-}
-
-.sort-btn.active {
-    background-color: #0dcaf0;
-    border-color: #0dcaf0;
-    color: #000;
-}
-
-/* Estilos para cards de estadísticas */
-.card {
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-/* Estilos responsivos */
+.table-hover tbody tr:hover { background: #f0fdf4; }
+ 
+.filter-btn.active                          { background: #22c55e; color: white; border-color: #22c55e; }
+.filter-btn[data-filter="activo"].active    { background: #ef4444; border-color: #ef4444; }
+.filter-btn[data-filter="abonado"].active   { background: #f59e0b; border-color: #f59e0b; color: white; }
+.sort-btn.active                            { background: #0284c7; border-color: #0284c7; color: white; }
+ 
+/* Progress bar */
+.progress { min-width: 80px; background: #f1f5f9; border-radius: 9999px; }
+ 
+/* Stats cards — quitar transform para no conflictuar con hover verde del layout */
+#estadisticas-wrap .card:hover { transform: none; }
+ 
 @media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.9rem;
-    }
-    
-    .btn-group .btn {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.8rem;
-    }
-    
-    .row.mb-4 {
-        flex-direction: column;
-    }
-    
-    .col-md-7, .col-md-5 {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-    
-    .btn-group {
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-    }
-    
-    .ms-2 {
-        margin-left: 0 !important;
-        margin-top: 0.25rem;
-    }
+    .btn-group { flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .ms-2 { margin-left: 0 !important; margin-top: 0.25rem; }
 }
 </style>
 @endpush

@@ -105,7 +105,7 @@
 
                 <div class="table-responsive" id="table-wrapper" style="{{ empty($clientesData) ? 'display:none;' : '' }}">
                     <table class="table table-hover table-striped" id="clientesTable">
-                        <thead class="bg-primary text-white">
+                        <thead class="table-head-dark">
                             <tr>
                                 <th style="width: 60px;">No.</th>
                                 <th>Nombre</th>
@@ -556,76 +556,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @push('styles')
 <style>
-    th:first-child, td:first-child {
-        font-weight: 500;
-        color: #495057;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(0,0,0,0.02);
-    }
-
-    .badge {
-        font-size: 0.85em;
-        padding: 0.5em 0.75em;
-    }
-
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    /* Botones de filtro activos */
-    .filter-btn.active, .type-filter.active {
-        background-color: #0d6efd;
-        color: white;
-        border-color: #0d6efd;
-    }
-
-    .filter-btn[data-filter="activo"].active {
-        background-color: #198754;
-        border-color: #198754;
-    }
-
-    .filter-btn[data-filter="inactivo"].active {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-
-    .type-filter[data-type="natural"].active {
-        background-color: #0dcaf0;
-        border-color: #0dcaf0;
-        color: #000;
-    }
-
-    .type-filter[data-type="juridico"].active {
-        background-color: #ffc107;
-        border-color: #ffc107;
-        color: #000;
-    }
-
-    /* Responsivo */
-    @media (max-width: 768px) {
-        .table-responsive { font-size: 0.9rem; }
-
-        .btn-group .btn {
-            padding: 0.2rem 0.4rem;
-            font-size: 0.8rem;
-        }
-
-        .row.mb-4 { flex-direction: column; }
-
-        .col-md-6 { margin-bottom: 0.5rem; }
-
-        .btn-group {
-            flex-wrap: wrap;
-            margin-bottom: 0.25rem;
-        }
-
-        .ms-2 {
-            margin-left: 0 !important;
-            margin-top: 0.25rem;
-        }
-    }
+.table-hover tbody tr:hover { background: #f0fdf4; }
+ 
+.filter-btn.active,
+.type-filter.active              { background: #00802b; color: white; border-color: #22c55e; }
+.filter-btn[data-filter="inactivo"].active { background: #ef4444; border-color: #ef4444; }
+.type-filter[data-type="natural"].active  { background: #0284c7; border-color: #0284c7; color: white; }
+.type-filter[data-type="juridico"].active { background: #d97706; border-color: #d97706; color: white; }
+ 
+@media (max-width: 768px) {
+    .btn-group { flex-wrap: wrap; margin-bottom: 0.25rem; }
+    .ms-2 { margin-left: 0 !important; margin-top: 0.25rem; }
+}
 </style>
 @endpush

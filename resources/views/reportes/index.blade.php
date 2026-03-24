@@ -140,146 +140,50 @@
 
 @push('styles')
 <style>
-/* Estilos para las cards de reportes */
 .reporte-card {
-    transition: all 0.3s ease-in-out;
-    border: 1px solid rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
     overflow: hidden;
-}
-
-.reporte-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    border-color: transparent;
-}
-
-/* Wrapper para íconos */
-.icon-wrapper {
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.reporte-card:hover .icon-wrapper {
-    transform: scale(1.1);
-}
-
-/* Fondos suaves para íconos */
-.bg-primary-soft {
-    background-color: rgba(13, 110, 253, 0.1);
-}
-
-.bg-success-soft {
-    background-color: rgba(25, 135, 84, 0.1);
-}
-
-.bg-danger-soft {
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-.bg-warning-soft {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-.bg-info-soft {
-    background-color: rgba(13, 202, 240, 0.1);
-}
-
-.bg-secondary-soft {
-    background-color: rgba(108, 117, 125, 0.1);
-}
-
-/* Efecto para botones */
-.btn-hover {
-    transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
 }
-
-.btn-hover:hover {
-    transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+.reporte-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    border-color: #bbf7d0 !important;
+    background: #f0fdf4 !important;
 }
-
-.btn-hover:active {
-    transform: scale(0.95);
+ 
+.icon-wrapper {
+    width: 72px; height: 72px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+    border-radius: 50%;
 }
-
-/* Animación de entrada para las cards */
-.reporte-card {
-    animation: fadeInUp 0.5s ease-out forwards;
-    opacity: 0;
-}
-
+.reporte-card:hover .icon-wrapper { transform: scale(1.1); }
+ 
+.bg-primary-soft   { background: rgba(22,163,74,0.1); }
+.bg-success-soft   { background: rgba(34,197,94,0.1); }
+.bg-danger-soft    { background: rgba(239,68,68,0.1); }
+.bg-warning-soft   { background: rgba(245,158,11,0.1); }
+.bg-info-soft      { background: rgba(59,130,246,0.1); }
+.bg-secondary-soft { background: rgba(100,116,139,0.1); }
+.bg-cyan-soft      { background: rgba(6,182,212,0.1); }
+ 
+.text-cyan { color: #0891b2 !important; }
+.btn-cyan  { background: #0891b2; border-color: #0891b2; color: white; }
+.btn-cyan:hover { background: #0e7490; border-color: #0e7490; color: white; }
+ 
+/* Animación escalonada */
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Retrasos en la animación para cada card */
-.reporte-card:nth-child(1) { animation-delay: 0.1s; }
-.reporte-card:nth-child(2) { animation-delay: 0.2s; }
-.reporte-card:nth-child(3) { animation-delay: 0.3s; }
-.reporte-card:nth-child(4) { animation-delay: 0.4s; }
-.reporte-card:nth-child(5) { animation-delay: 0.5s; }
-.reporte-card:nth-child(6) { animation-delay: 0.6s; }
-
-/* Efecto de brillo al hacer hover */
-.reporte-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.bg-cyan-soft {
-    background-color: rgba(13, 202, 240, 0.1);
-}
-.text-cyan {
-    color: #0dcaf0 !important;
-}
-.btn-cyan {
-    background-color: #0dcaf0;
-    border-color: #0dcaf0;
-    color: white;
-}
-.btn-cyan:hover {
-    background-color: #0bb7d9;
-    border-color: #0bb7d9;
-    color: white;
-}
-
-.reporte-card:hover::before {
-    left: 100%;
-}
-
-/* Estilos responsive */
-@media (max-width: 768px) {
-    .icon-wrapper {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .icon-wrapper i {
-        font-size: 2rem !important;
-    }
-    
-    .reporte-card {
-        margin-bottom: 1rem;
-    }
-}
+.reporte-card { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
+.col-md-4:nth-child(1) .reporte-card { animation-delay: 0.05s; }
+.col-md-4:nth-child(2) .reporte-card { animation-delay: 0.1s; }
+.col-md-4:nth-child(3) .reporte-card { animation-delay: 0.15s; }
+.col-md-4:nth-child(4) .reporte-card { animation-delay: 0.2s; }
+.col-md-4:nth-child(5) .reporte-card { animation-delay: 0.25s; }
+.col-md-4:nth-child(6) .reporte-card { animation-delay: 0.3s; }
+.col-md-4:nth-child(7) .reporte-card { animation-delay: 0.35s; }
 </style>
 @endpush

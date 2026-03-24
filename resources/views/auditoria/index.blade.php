@@ -110,7 +110,7 @@
                 <div class="table-responsive" id="table-wrapper"
                      style="{{ empty($auditoriaData) ? 'display:none;' : '' }}">
                     <table class="table table-hover" id="auditoriaTable">
-                        <thead class="bg-primary text-white">
+                        <thead class="table-head-dark">
                             <tr>
                                 <th>Fecha/Hora</th>
                                 <th>Usuario</th>
