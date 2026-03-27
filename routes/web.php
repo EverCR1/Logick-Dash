@@ -76,11 +76,16 @@ Route::middleware(['web.auth'])->group(function () {
         Route::get('/{id}/editar', [CategoriaController::class, 'edit'])->name('categorias.edit');
         Route::put('/{id}', [CategoriaController::class, 'update'])->name('categorias.update');
         Route::delete('/{id}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');
+        
+        Route::post('/{id}/cambiar-estado',          [CategoriaController::class, 'changeStatus'])->name('categorias.change-status');
+
+        Route::post('/{id}/subir-imagen',            [CategoriaController::class, 'subirImagen'])->name('categorias.subir-imagen');
+        Route::delete('/{id}/imagen',                [CategoriaController::class, 'eliminarImagen'])->name('categorias.eliminar-imagen');
     });
 
     // Productos (admin y vendedor)
     Route::middleware(['web.auth:administrador,vendedor'])->prefix('productos')->group(function () {
-         Route::get('/filter',     [ProductoController::class, 'filter'])->name('productos.filter');
+        Route::get('/filter',     [ProductoController::class, 'filter'])->name('productos.filter');
         Route::get('/', [ProductoController::class, 'index'])->name('productos.index');
         Route::get('/crear', [ProductoController::class, 'create'])->name('productos.create');
         Route::post('/', [ProductoController::class, 'store'])->name('productos.store');

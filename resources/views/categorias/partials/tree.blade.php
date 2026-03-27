@@ -1,79 +1,166 @@
+{{--
+    resources/views/categorias/partials/tree.blade.php
+
+    CORRECCIÓN: la API puede serializar la relación como 'children_recursive'
+    (snake_case) o 'childrenRecursive' (camelCase) según la versión de Laravel.
+    Usamos el operador ?? para manejar ambos casos en cada nivel.
+--}}
+
 @foreach($categorias as $categoria)
+
 @php
-    $collapseId = 'collapse-' . $categoria['id'];
-    $hasChildren = isset($categoria['children']) && count($categoria['children']) > 0;
-    
-    // Asignar clase de color según el nivel
-    $colorClass = 'level-color-' . ($nivel % 6);
+    $nivel     = $nivel ?? 0;
+    $colorIdx  = $nivel % 6;
+
+    // ── Hijos: manejar snake_case y camelCase ────────────────────────
+    $hijos = $categoria['children_recursive']
+          ?? $categoria['childrenRecursive']
+          ?? $categoria['children']
+          ?? [];
+
+    $tieneHijos = !empty($hijos);
+    $collapseId = 'cat-' . $categoria['id'];
+
+    // ── Imagen: la API devuelve el objeto imagen o null ──────────────
+    $imagen  = $categoria['imagen'] ?? null;
+    $imgUrl  = $imagen['url_thumb'] ?? ($imagen['url_medium'] ?? ($imagen['url'] ?? null));
+    $imgFull = $imagen['url_medium'] ?? ($imagen['url'] ?? $imgUrl);
 @endphp
-<li class="level-{{ $nivel }} mb-2" data-categoria-id="{{ $categoria['id'] }}" data-estado="{{ $categoria['estado'] }}">
-    <div class="d-flex align-items-start">
-        @if($hasChildren)
-        <button class="toggle-btn me-2" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $collapseId }}" aria-expanded="true" aria-controls="{{ $collapseId }}">
-            <i class="fas fa-chevron-down"></i>
-        </button>
-        @else
-        <div class="toggle-btn me-2" style="opacity: 0.3; cursor: default;">
-            <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
-        </div>
-        @endif
-        
-        <div class="category-item flex-grow-1 {{ $colorClass }}" data-estado="{{ $categoria['estado'] }}">
-            <div>
-                <a href="{{ route('categorias.show', $categoria['id']) }}" class="text-decoration-none">
-                    <span class="category-name fw-bold">{{ $categoria['nombre'] }}</span>
-                </a>
+
+<li class="level-{{ $nivel }}">
+    <div class="category-item level-color-{{ $colorIdx }}"
+         data-estado="{{ $categoria['estado'] ?? 'activo' }}"
+         data-id="{{ $categoria['id'] }}">
+
+        {{-- ── Lado izquierdo ───────────────────────────────────── --}}
+        <div class="d-flex align-items-center gap-2 flex-1 min-w-0">
+
+            {{-- Toggle colapsar --}}
+            @if($tieneHijos)
+                <button type="button"
+                        class="toggle-btn"
+                        data-bs-toggle="collapse"
+                        data-target="#{{ $collapseId }}"
+                        title="Expandir/Colapsar">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            @else
+                <div style="width:26px; flex-shrink:0;"></div>
+            @endif
+
+            {{-- Imagen miniatura con click para modal --}}
+            @if($imgUrl)
+                <img src="{{ $imgUrl }}"
+                     alt="{{ $categoria['nombre'] }}"
+                     class="cat-thumb"
+                     data-full="{{ $imgFull }}"
+                     data-nombre="{{ $categoria['nombre'] }}"
+                     onclick="abrirModalImagen(this)"
+                     title="Ver imagen de {{ $categoria['nombre'] }}">
+            @else
+                <div class="cat-thumb-placeholder" title="Sin imagen">
+                    <i class="fas fa-tag text-muted"></i>
+                </div>
+            @endif
+
+            {{-- Info --}}
+            <div class="min-w-0">
+                <span class="category-name">{{ $categoria['nombre'] }}</span>
+
                 @if(!empty($categoria['descripcion']))
-                    <small class="category-desc text-muted d-block">{{ Str::limit($categoria['descripcion'], 60) }}</small>
+                    <span class="category-desc d-block text-truncate" style="max-width:320px;">
+                        {{ Str::limit($categoria['descripcion'], 60) }}
+                    </span>
                 @endif
-                <div class="mt-2">
-                    <span class="badge {{ $categoria['estado'] == 'activo' ? 'bg-success' : 'bg-danger' }}">
-                        <i class="fas fa-{{ $categoria['estado'] == 'activo' ? 'check-circle' : 'times-circle' }} me-1"></i>
-                        {{ ucfirst($categoria['estado']) }}
+
+                <div class="d-flex align-items-center gap-1 mt-1 flex-wrap">
+                    <span class="badge {{ ($categoria['estado'] ?? 'activo') === 'activo' ? 'bg-success' : 'bg-secondary' }} badge-estado">
+                        {{ ucfirst($categoria['estado'] ?? 'activo') }}
                     </span>
-                    
-                    @if(isset($categoria['productos_count']) && $categoria['productos_count'] > 0)
-                    <span class="badge bg-info">
-                        <i class="fas fa-box me-1"></i>
-                        {{ $categoria['productos_count'] }} productos
-                    </span>
+
+                    @if($tieneHijos)
+                        <span class="badge bg-light text-dark badge-estado">
+                            {{ count($hijos) }} {{ count($hijos) === 1 ? 'sub' : 'subs' }}
+                        </span>
+                    @endif
+
+                    @if($imgUrl)
+                        <span class="badge bg-light text-muted badge-estado" title="Tiene imagen">
+                            <i class="fas fa-image"></i>
+                        </span>
                     @endif
                 </div>
             </div>
-            
-            @if(in_array($userRole, ['administrador', 'vendedor']))
-            <div class="category-actions">
-                <a href="{{ route('categorias.show', $categoria['id']) }}" class="btn btn-sm" title="Ver detalles">
-                    <i class="fas fa-eye text-primary"></i>
-                </a>
-                <a href="{{ route('categorias.edit', $categoria['id']) }}" class="btn btn-sm" title="Editar categoría">
-                    <i class="fas fa-edit text-warning"></i>
-                </a>
-                <form action="{{ route('categorias.destroy', $categoria['id']) }}" method="POST" 
-                      class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar esta categoría? Esta acción no se puede deshacer.')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-sm" title="Eliminar categoría">
-                        <i class="fas fa-trash text-danger"></i>
-                    </button>
-                </form>
-            </div>
-            @else
-            <div class="category-actions">
-                <a href="{{ route('categorias.show', $categoria['id']) }}" class="btn btn-sm" title="Ver detalles">
-                    <i class="fas fa-eye text-primary"></i>
-                </a>
-            </div>
-            @endif
         </div>
-    </div>
-    
-    @if($hasChildren)
-    <div class="collapse show mt-2" id="{{ $collapseId }}">
-        <ul class="list-unstyled" style="margin-left: 20px;">
-            @include('categorias.partials.tree', ['categorias' => $categoria['children'], 'nivel' => $nivel + 1])
-        </ul>
-    </div>
+
+        {{-- ── Acciones ─────────────────────────────────────────── --}}
+        @if(in_array(auth()->user()->rol ?? 'vendedor', ['administrador', 'vendedor']))
+        <div class="category-actions">
+
+            {{-- Ver --}}
+            <a href="{{ route('categorias.show', $categoria['id']) }}"
+               class="btn btn-sm" title="Ver detalles">
+                <i class="fas fa-eye text-info"></i>
+            </a>
+
+            {{-- Editar --}}
+            <a href="{{ route('categorias.edit', $categoria['id']) }}"
+               class="btn btn-sm" title="Editar">
+                <i class="fas fa-edit text-warning"></i>
+            </a>
+
+            {{-- Cambiar estado --}}
+            <form action="{{ route('categorias.change-status', $categoria['id']) }}"
+                  method="POST" class="d-inline"
+                  onsubmit="return confirm('¿Cambiar estado de \'{{ addslashes($categoria['nombre']) }}\'?')">
+                @csrf
+                <input type="hidden" name="estado"
+                       value="{{ ($categoria['estado'] ?? 'activo') === 'activo' ? 'inactivo' : 'activo' }}">
+                <button type="submit"
+                        class="btn btn-sm"
+                        title="{{ ($categoria['estado'] ?? 'activo') === 'activo' ? 'Desactivar' : 'Activar' }}">
+                    @if(($categoria['estado'] ?? 'activo') === 'activo')
+                        <i class="fas fa-toggle-on text-success"></i>
+                    @else
+                        <i class="fas fa-toggle-off text-secondary"></i>
+                    @endif
+                </button>
+            </form>
+
+            {{-- Agregar subcategoría --}}
+            <a href="{{ route('categorias.create') }}?parent_id={{ $categoria['id'] }}"
+               class="btn btn-sm" title="Agregar subcategoría">
+                <i class="fas fa-plus text-primary"></i>
+            </a>
+
+            {{-- Eliminar --}}
+            <form action="{{ route('categorias.destroy', $categoria['id']) }}"
+                  method="POST" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar \'{{ addslashes($categoria['nombre']) }}\'?\nEsta acción no se puede deshacer.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm" title="Eliminar">
+                    <i class="fas fa-trash text-danger"></i>
+                </button>
+            </form>
+
+        </div>
+        @endif
+
+    </div>{{-- .category-item --}}
+
+    {{-- ── Hijos recursivos ─────────────────────────────────────────── --}}
+    @if($tieneHijos)
+        <div id="{{ $collapseId }}" class="collapse show">
+            <ul class="list-unstyled">
+                @include('categorias.partials.tree', [
+                    'categorias' => $hijos,
+                    'nivel'      => $nivel + 1
+                ])
+            </ul>
+        </div>
     @endif
+
 </li>
+
 @endforeach

@@ -15,195 +15,368 @@ class CategoriaController extends Controller
         $this->apiService = $apiService;
     }
 
+    // ── INDEX ─────────────────────────────────────────────────────────
+
     public function index()
     {
         $response = $this->apiService->get('categorias-tree');
-        
+
         if ($response->successful()) {
             $categorias = $response->json()['categorias'] ?? [];
-            
-            // Agregar conteo de productos a cada categoría (opcional - requeriría endpoint adicional)
-            // Esto se puede hacer si tienes un endpoint que devuelva el conteo
         } else {
             $categorias = [];
-            
-            Log::error('Error al obtener categorías:', [
+            Log::error('CategoriaController@index', [
                 'status' => $response->status(),
-                'body' => $response->body()
+                'body'   => $response->body()
             ]);
         }
 
         return view('categorias.index', [
             'categorias' => $categorias,
-            'userRole' => auth()->user()->rol ?? 'vendedor'
+            'userRole'   => auth()->user()->rol ?? 'vendedor'
         ]);
     }
 
-    /**
-     * Mostrar los detalles de una categoría específica
-     */
+    // ── CREATE ────────────────────────────────────────────────────────
+
+    public function create()
+    {
+        $response        = $this->apiService->get('categorias-flat');
+        $categoriasPadre = $response->successful()
+            ? ($response->json()['categorias'] ?? [])
+            : [];
+
+        return view('categorias.create', compact('categoriasPadre'));
+    }
+
+    // ── STORE ─────────────────────────────────────────────────────────
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nombre'      => 'required|string|max:100',
+            'descripcion' => 'nullable|string',
+            'parent_id'   => 'nullable',
+            'imagen'      => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ]);
+
+        try {
+            $data = $request->only(['nombre', 'descripcion', 'parent_id']);
+
+            // 1. Crear categoría
+            $response = $this->apiService->post('categorias', $data);
+
+            if (!$response->successful()) {
+                $errors  = $response->json()['errors']  ?? [];
+                $message = $response->json()['message'] ?? 'Error al crear categoría';
+                return !empty($errors)
+                    ? back()->withErrors($errors)->withInput()
+                    : back()->withErrors(['error' => $message])->withInput();
+            }
+
+            $categoriaId = $response->json()['categoria']['id'] ?? null;
+
+            // 2. Subir imagen si viene — mismo patrón que ServicioController@store
+            if ($request->hasFile('imagen') && $categoriaId) {
+                $this->subirImagenCategoria($request, $categoriaId, 'imagen');
+            }
+
+            return redirect()
+                ->route('categorias.index')
+                ->with('success', 'Categoría creada exitosamente' .
+                    ($request->hasFile('imagen') ? ' (imagen subida)' : ''));
+
+        } catch (\Exception $e) {
+            Log::error('CategoriaController@store: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error interno: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    // ── SHOW ──────────────────────────────────────────────────────────
+
     public function show($id)
     {
-        // Obtener la categoría con sus relaciones
         $response = $this->apiService->get("categorias/{$id}");
-        
+
         if (!$response->successful()) {
-            Log::error('Error al obtener categoría:', [
-                'id' => $id,
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-            
-            return redirect()->route('categorias.index')
-                ->with('error', 'Categoría no encontrada');
+            return redirect()->route('categorias.index')->with('error', 'Categoría no encontrada.');
         }
 
-        $data = $response->json();
-        $categoria = $data['categoria'] ?? null;
-        
+        $categoria = $response->json()['categoria'] ?? null;
+
         if (!$categoria) {
-            return redirect()->route('categorias.index')
-                ->with('error', 'Categoría no encontrada en la respuesta');
+            return redirect()->route('categorias.index')->with('error', 'Categoría no encontrada.');
         }
 
-        // Opcional: Obtener productos de esta categoría
-        // Esto requeriría un endpoint adicional en la API
-        // Por ahora, podemos intentar obtenerlos si el endpoint existe
-        $productosResponse = $this->apiService->get('productos/search', [
+        // Productos de la categoría
+        $productosResp = $this->apiService->get('productos/search', [
             'categoria_id' => $id,
-            'limit' => 10
+            'per_page'     => 10
         ]);
-        
-        if ($productosResponse->successful()) {
-            $productosData = $productosResponse->json();
-            $categoria['productos'] = $productosData['productos']['data'] ?? [];
-            $categoria['productos_count'] = $productosData['productos']['total'] ?? count($categoria['productos']);
+
+        if ($productosResp->successful()) {
+            $pd = $productosResp->json();
+            $categoria['productos']       = $pd['productos']['data'] ?? [];
+            $categoria['productos_count'] = $pd['productos']['total'] ?? count($categoria['productos']);
         } else {
-            $categoria['productos'] = [];
+            $categoria['productos']       = [];
             $categoria['productos_count'] = 0;
         }
 
-        // Obtener el rol del usuario para permisos
         $userRole = auth()->user()->rol ?? 'vendedor';
 
         return view('categorias.show', compact('categoria', 'userRole'));
     }
 
-    public function create()
-    {
-        // Obtener categorías para el select
-        $response = $this->apiService->get('categorias-flat');
-        
-        if ($response->successful()) {
-            $categoriasPadre = $response->json()['categorias'] ?? [];
-        } else {
-            $categoriasPadre = [];
-            
-            Log::error('Error al obtener categorías para select:', [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-        }
-
-        return view('categorias.create', [
-            'categoriasPadre' => $categoriasPadre
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nombre' => 'required|string|max:100',
-            'descripcion' => 'nullable|string',
-            'parent_id' => 'nullable',
-        ]);
-
-        $response = $this->apiService->post('categorias', $request->all());
-
-        if ($response->successful()) {
-            return redirect()->route('categorias.index')
-                ->with('success', 'Categoría creada exitosamente');
-        }
-
-        $errors = $response->json()['errors'] ?? ['Error al crear categoría'];
-        $message = $response->json()['message'] ?? 'Error desconocido';
-        
-        Log::error('Error al crear categoría:', [
-            'status' => $response->status(),
-            'errors' => $errors,
-            'message' => $message
-        ]);
-
-        return back()->withErrors($errors)->withInput();
-    }
+    // ── EDIT ──────────────────────────────────────────────────────────
 
     public function edit($id)
     {
-        // Obtener categoría
         $response = $this->apiService->get("categorias/{$id}");
-        
+
         if (!$response->successful()) {
-            return redirect()->route('categorias.index')
-                ->with('error', 'Categoría no encontrada');
+            return redirect()->route('categorias.index')->with('error', 'Categoría no encontrada.');
         }
 
         $categoria = $response->json()['categoria'] ?? null;
-        
-        // Obtener categorías para el select
-        $responsePadre = $this->apiService->get('categorias-flat');
-        $categoriasPadre = $responsePadre->successful() ? $responsePadre->json()['categorias'] ?? [] : [];
 
-        return view('categorias.edit', [
-            'categoria' => $categoria,
-            'categoriasPadre' => $categoriasPadre
-        ]);
+        if (!$categoria) {
+            return redirect()->route('categorias.index')->with('error', 'Categoría no encontrada.');
+        }
+
+        $responsePadre   = $this->apiService->get('categorias-flat');
+        $categoriasPadre = $responsePadre->successful()
+            ? ($responsePadre->json()['categorias'] ?? [])
+            : [];
+
+        // Excluir la categoría actual del selector de padre
+        unset($categoriasPadre[$id]);
+
+        return view('categorias.edit', compact('categoria', 'categoriasPadre'));
     }
+
+    // ── UPDATE ────────────────────────────────────────────────────────
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'nombre' => 'required|string|max:100',
-            'descripcion' => 'nullable|string',
-            'parent_id' => 'nullable',
-            'estado' => 'required|in:activo,inactivo',
+            'nombre'       => 'required|string|max:100',
+            'descripcion'  => 'nullable|string',
+            'parent_id'    => 'nullable',
+            'estado'       => 'required|in:activo,inactivo',
+            'nueva_imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $response = $this->apiService->put("categorias/{$id}", $request->all());
+        try {
+            $data = $request->only(['nombre', 'descripcion', 'parent_id', 'estado']);
 
-        if ($response->successful()) {
-            return redirect()->route('categorias.index')
-                ->with('success', 'Categoría actualizada exitosamente');
+            $response = $this->apiService->put("categorias/{$id}", $data);
+
+            if (!$response->successful()) {
+                $errors  = $response->json()['errors']  ?? [];
+                $message = $response->json()['message'] ?? 'Error al actualizar';
+                return !empty($errors)
+                    ? back()->withErrors($errors)->withInput()
+                    : back()->withErrors(['error' => $message])->withInput();
+            }
+
+            // Subir nueva imagen — mismo patrón que ServicioController@update
+            if ($request->hasFile('nueva_imagen')) {
+                try {
+                    $this->subirImagenCategoria($request, $id, 'nueva_imagen');
+                } catch (\Exception $e) {
+                    Log::warning('CategoriaController@update imagen: ' . $e->getMessage());
+                    return redirect()
+                        ->route('categorias.index')
+                        ->with('warning', 'Categoría actualizada pero hubo un error al subir la imagen: ' . $e->getMessage());
+                }
+            }
+
+            // Eliminar imagen si se marcó el checkbox
+            if ($request->boolean('eliminar_imagen')) {
+                $delResponse = $this->apiService->delete("categorias/{$id}/imagen");
+                if (!$delResponse->successful()) {
+                    Log::warning('No se pudo eliminar imagen de categoría ' . $id);
+                }
+            }
+
+            return redirect()
+                ->route('categorias.index')
+                ->with('success', 'Categoría actualizada exitosamente' .
+                    ($request->hasFile('nueva_imagen') ? ' (imagen actualizada)' : ''));
+
+        } catch (\Exception $e) {
+            Log::error('CategoriaController@update: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error interno: ' . $e->getMessage()])->withInput();
         }
-
-        $errors = $response->json()['errors'] ?? ['Error al actualizar categoría'];
-        $message = $response->json()['message'] ?? 'Error desconocido';
-        
-        Log::error('Error al actualizar categoría:', [
-            'status' => $response->status(),
-            'errors' => $errors,
-            'message' => $message
-        ]);
-
-        return back()->withErrors($errors)->withInput();
     }
+
+    // ── DESTROY ───────────────────────────────────────────────────────
 
     public function destroy($id)
     {
         $response = $this->apiService->delete("categorias/{$id}");
 
         if ($response->successful()) {
-            return redirect()->route('categorias.index')
-                ->with('success', 'Categoría eliminada exitosamente');
+            return redirect()
+                ->route('categorias.index')
+                ->with('success', 'Categoría eliminada exitosamente.');
         }
 
+        // La API devuelve mensajes específicos (subcategorías, productos, etc.)
         $message = $response->json()['message'] ?? 'Error al eliminar categoría';
-        
-        Log::error('Error al eliminar categoría:', [
-            'status' => $response->status(),
-            'message' => $message
+
+        return redirect()
+            ->route('categorias.index')
+            ->with('error', $message);
+    }
+
+    // ── CHANGE STATUS ─────────────────────────────────────────────────
+
+    /**
+     * Mismo patrón que ServicioController@changeStatus
+     */
+    public function changeStatus($id)
+    {
+        try {
+            $response = $this->apiService->post("categorias/{$id}/change-status", [
+                'estado' => request('estado', 'activo')
+            ]);
+
+            if ($response->successful()) {
+                return back()->with('success', 'Estado de la categoría cambiado exitosamente.');
+            }
+
+            return back()->with('error', 'Error al cambiar estado: ' .
+                ($response->json()['message'] ?? 'Error desconocido'));
+
+        } catch (\Exception $e) {
+            Log::error('CategoriaController@changeStatus: ' . $e->getMessage(), [
+                'categoria_id' => $id
+            ]);
+            return back()->with('error', 'Error interno al cambiar estado.');
+        }
+    }
+
+    // ── SUBIR IMAGEN (AJAX) ───────────────────────────────────────────
+
+    /**
+     * POST /categorias/{id}/subir-imagen
+     * Mismo patrón que ServicioController@subirImagen
+     */
+    public function subirImagen(Request $request, $id)
+    {
+        $request->validate([
+            'imagen' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        return redirect()->route('categorias.index')
-            ->with('error', $message);
+        try {
+            $response = $this->apiService->postWithFiles(
+                "categorias/{$id}/upload-image",
+                [],
+                ['imagen' => $request->file('imagen')]
+            );
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Imagen subida exitosamente',
+                    'data'    => $response->json()
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir imagen: ' .
+                    ($response->json()['message'] ?? 'Error ' . $response->status()),
+                'errors'  => $response->json()['errors'] ?? null
+            ], $response->status());
+
+        } catch (\Exception $e) {
+            Log::error('CategoriaController@subirImagen: ' . $e->getMessage(), [
+                'categoria_id' => $id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ── ELIMINAR IMAGEN (AJAX) ────────────────────────────────────────
+
+    /**
+     * DELETE /categorias/{id}/imagen
+     * Mismo patrón que ServicioController@eliminarImagen
+     */
+    public function eliminarImagen($id)
+    {
+        try {
+            $response = $this->apiService->delete("categorias/{$id}/imagen");
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Imagen eliminada exitosamente'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar imagen: ' .
+                    ($response->json()['message'] ?? 'Error ' . $response->status())
+            ], $response->status());
+
+        } catch (\Exception $e) {
+            Log::error('CategoriaController@eliminarImagen: ' . $e->getMessage(), [
+                'categoria_id' => $id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    // ── HELPER PRIVADO ────────────────────────────────────────────────
+
+    /**
+     * Sube imagen a la API usando postWithFiles.
+     * Mismo patrón que subirImagenServicio / subirNuevaImagenServicio en ServicioController.
+     *
+     * @param  Request $request
+     * @param  int     $categoriaId
+     * @param  string  $campo       nombre del campo en el request ('imagen' o 'nueva_imagen')
+     */
+    private function subirImagenCategoria(Request $request, int $categoriaId, string $campo): void
+    {
+        $endpoint = "categorias/{$categoriaId}/upload-image";
+
+        Log::info('Subiendo imagen de categoría', [
+            'endpoint'     => $endpoint,
+            'categoria_id' => $categoriaId,
+            'file_name'    => $request->file($campo)->getClientOriginalName()
+        ]);
+
+        $response = $this->apiService->postWithFiles(
+            $endpoint,
+            [],
+            ['imagen' => $request->file($campo)]  // la API siempre espera 'imagen'
+        );
+
+        if (!$response->successful()) {
+            $errorData = $response->json();
+            Log::error('Error API al subir imagen de categoría', [
+                'status'   => $response->status(),
+                'response' => $errorData
+            ]);
+            throw new \Exception(
+                'Error API: ' . ($errorData['message'] ?? $response->status())
+            );
+        }
+
+        Log::info('Imagen de categoría subida exitosamente', [
+            'categoria_id' => $categoriaId
+        ]);
     }
 }
