@@ -351,32 +351,48 @@ class CategoriaController extends Controller
     private function subirImagenCategoria(Request $request, int $categoriaId, string $campo): void
     {
         $endpoint = "categorias/{$categoriaId}/upload-image";
-
-        Log::info('Subiendo imagen de categoría', [
-            'endpoint'     => $endpoint,
+        $file = $request->file($campo);
+        
+        Log::info('Inicio subida imagen categoría', [
             'categoria_id' => $categoriaId,
-            'file_name'    => $request->file($campo)->getClientOriginalName()
+            'campo' => $campo,
+            'file_present' => $file !== null,
+            'file_name' => $file ? $file->getClientOriginalName() : null,
+            'file_size' => $file ? $file->getSize() : null,
+            'file_mime' => $file ? $file->getMimeType() : null
         ]);
 
-        $response = $this->apiService->postWithFiles(
-            $endpoint,
-            [],
-            ['imagen' => $request->file($campo)]  // la API siempre espera 'imagen'
-        );
-
-        if (!$response->successful()) {
-            $errorData = $response->json();
-            Log::error('Error API al subir imagen de categoría', [
-                'status'   => $response->status(),
-                'response' => $errorData
-            ]);
-            throw new \Exception(
-                'Error API: ' . ($errorData['message'] ?? $response->status())
-            );
+        if (!$file) {
+            throw new \Exception('No se recibió el archivo en el campo ' . $campo);
         }
 
-        Log::info('Imagen de categoría subida exitosamente', [
-            'categoria_id' => $categoriaId
-        ]);
+        try {
+            $response = $this->apiService->postWithFiles(
+                $endpoint,
+                [],
+                ['imagen' => $file]
+            );
+
+            Log::info('Respuesta API subida imagen', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'headers' => $response->headers()
+            ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Error API: ' . ($response->json()['message'] ?? $response->status()));
+            }
+
+            Log::info('Imagen de categoría subida exitosamente', [
+                'categoria_id' => $categoriaId
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Excepción subiendo imagen', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 }
